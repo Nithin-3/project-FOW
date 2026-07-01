@@ -6,8 +6,8 @@ const world = document.getElementById('world') as HTMLCanvasElement;
 const fog = document.getElementById('fog') as HTMLCanvasElement;
 const worldCtx = world.getContext('2d')!;
 const fogCtx = fog.getContext('2d')!;
-const circleRad = 150;
 
+interface Light { x: number; y: number; r: number; }
 
 function resizeCanvas() {
 	fog.width = window.innerWidth;
@@ -28,35 +28,58 @@ for (let i = 0; i < 5; i++) {
 	drawRandomPolygon(worldCtx, {x,y}, points, radius);
 }
 
-
-
 const { width, height } = fog;
 fogCtx.clearRect(0, 0, width, height);
 
-// draw shadow
 fogCtx.fillStyle = "rgba(0,0,0,0.85)";
 fogCtx.fillRect(0, 0, width, height);
 
 document.addEventListener("mousemove", (e) => {
 	const { width, height } = fog;
+
+	const lights: Light[] = [
+		{ x: e.clientX, y: e.clientY, r: 150 },
+	];
+
 	fogCtx.clearRect(0, 0, width, height);
 
-	// draw shadow
+	// Step 1: dark overlay
 	fogCtx.fillStyle = "rgba(0,0,0,0.85)";
 	fogCtx.fillRect(0, 0, width, height);
 
-	// view area
+	// Step 2: accumulate visible regions from all lights
+	const visCanvas = new OffscreenCanvas(width, height);
+	const visCtx = visCanvas.getContext('2d')!;
+
+	for (const light of lights) {
+		const tempCanvas = new OffscreenCanvas(width, height);
+		const tempCtx = tempCanvas.getContext('2d')!;
+
+		tempCtx.fillStyle = "white";
+		tempCtx.beginPath();
+		tempCtx.arc(light.x, light.y, light.r, 0, Math.PI * 2);
+		tempCtx.fill();
+
+		tempCtx.globalCompositeOperation = "destination-out";
+		for (const polygon of gameObjects) {
+			drawShadow(tempCtx as any, { x: light.x, y: light.y }, light.r, polygon.points, "white");
+		}
+		tempCtx.globalCompositeOperation = "source-over";
+
+		visCtx.globalCompositeOperation = "lighter";
+		visCtx.drawImage(tempCanvas, 0, 0);
+	}
+
+	// Step 3: cut visible union from fog
 	fogCtx.globalCompositeOperation = "destination-out";
-	fogCtx.beginPath();
-	fogCtx.arc(e.clientX, e.clientY, circleRad, 0, Math.PI * 2);
-	fogCtx.fill();
+	fogCtx.drawImage(visCanvas, 0, 0);
 	fogCtx.globalCompositeOperation = "source-over";
 
-	for (const polygon of gameObjects) {
-		drawShadow(fogCtx, { x: e.clientX, y: e.clientY }, circleRad, polygon.points);
+	// Draw light indicators
+	for (const light of lights) {
+		fogCtx.beginPath();
+		fogCtx.arc(light.x, light.y, 5, 0, Math.PI * 2);
+		fogCtx.fillStyle = "rgba(255,0,0,1)";
+		fogCtx.fill();
 	}
-	fogCtx.beginPath();
-	fogCtx.fillStyle = "rgba(255,0,0,1)";
-	fogCtx.arc(e.clientX, e.clientY, circleRad * 0.05, 0, Math.PI * 2);
-	fogCtx.fill();
 })
