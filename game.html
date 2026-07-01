@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Game - fow</title>
+    <style>
+      body {
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+	cursor: none;
+      }
+      canvas {
+        display: block;
+	position: fixed;
+	top: 0;
+	left: 0;
+	<!-- pointer-events: none; -->
+	cursor: none;
+      }
+      #world{
+	      z-index:1;
+      }
+      #fog{
+	      z-index:2;
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="world"></canvas>
+    <canvas id="fog"></canvas>
+    <script type="module" src="/src/game.ts"></script>
+  </body>
+</html>
