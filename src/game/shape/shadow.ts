@@ -129,10 +129,32 @@ export const drawShadow = (ctx: CanvasRenderingContext2D, o: Vector2D, r: number
 				}
 
 
-				if (!pointInPolygon(vectorLerp(p, ray, 0.01), points)) {
-					const interset = sortByDistance(lineIntersectPolygon(p, ray, points), p);
+				const nudgedToRay = vectorLerp(p, ray, 0.01);
+				const nudgedToO = vectorLerp(p, o, 0.01);
+
+				if (!pointInPolygon(nudgedToRay, points)) {
+					const outwardHits: (Vector2D & { A: Vector2D; B: Vector2D })[] = [];
+					const backwardHits: (Vector2D & { A: Vector2D; B: Vector2D })[] = [];
+					for (let i = 0, j = points.length - 1; i < points.length; j = i++) {
+						const h1 = segmentIntersect(p, ray, points[j], points[i]);
+						if (h1) outwardHits.push({ x: h1.x, y: h1.y, A: points[j], B: points[i] });
+						const h2 = segmentIntersect(p, o, points[j], points[i]);
+						if (h2) backwardHits.push({ x: h2.x, y: h2.y, A: points[j], B: points[i] });
+					}
+					const interset: typeof outwardHits = [];
+					for (const pt of outwardHits) {
+						if (!interset.some(u => Math.abs(u.x - pt.x) < 0.001 && Math.abs(u.y - pt.y) < 0.001)) {
+							interset.push(pt);
+						}
+					}
+					sortByDistance(interset, p);
 					if (interset.length > 2) {
-						const doubleCheck = lineIntersectPolygon(p, o, points)
+						const doubleCheck: typeof backwardHits = [];
+						for (const pt of backwardHits) {
+							if (!doubleCheck.some(u => Math.abs(u.x - pt.x) < 0.001 && Math.abs(u.y - pt.y) < 0.001)) {
+								doubleCheck.push(pt);
+							}
+						}
 						if (doubleCheck.length < 2) {
 							if (distSq(o, interset[1]) < r * r) {
 								path.set(interset[1], p)
@@ -150,13 +172,11 @@ export const drawShadow = (ctx: CanvasRenderingContext2D, o: Vector2D, r: number
 						faceP.push(p)
 						facePSet.add(key(p))
 						continue;
-
 					}
 				}
 
-				if (!pointInPolygon(vectorLerp(p, o, 0.01), points)) {
-					// const intersections = lineIntersectPolygon(p, o, points);
-					const intersections = lineIntersectPolygon(vectorLerp(p, o, 0.01), o, points);
+				if (!pointInPolygon(nudgedToO, points)) {
+					const intersections = lineIntersectPolygon(nudgedToO, o, points);
 					if (intersections.length == 0) {
 						faceP.push(p)
 						facePSet.add(key(p))
