@@ -186,11 +186,6 @@ export const drawShadow = (ctx: CanvasRenderingContext2D, o: Vector2D, r: number
 			} else {
 				wait.push(cp) // if 2 collition on same line
 			}
-			// ctx.beginPath()
-			// ctx.fillStyle = "rgba(200,200,50,0.8)"
-			// ctx.arc(cp.x, cp.y, 5, 0, Math.PI * 2)
-			// ctx.closePath()
-			// ctx.fill()
 		}
 
 
@@ -209,14 +204,14 @@ export const drawShadow = (ctx: CanvasRenderingContext2D, o: Vector2D, r: number
 	}
 
 
-	// faceP.forEach(e => {
-	// 	ctx.beginPath()
-	// 	ctx.lineWidth = 3
-	// 	ctx.strokeStyle = "rgba(255,0,10,1)";
-	// 	ctx.arc(e.x, e.y, 10, 0, Math.PI * 2)
-	// 	ctx.closePath()
-	// 	ctx.stroke()
-	// })
+	faceP.forEach(e => {
+		ctx.beginPath()
+		ctx.lineWidth = 1
+		ctx.strokeStyle = "rgba(255,0,10,1)";
+		ctx.arc(e.x, e.y, 5, 0, Math.PI * 2)
+		ctx.closePath()
+		ctx.stroke()
+	})
 
 	ctx.strokeStyle = "rgba(255,255,0,1)";
 	if (path.size == 1) {
@@ -231,6 +226,7 @@ export const drawShadow = (ctx: CanvasRenderingContext2D, o: Vector2D, r: number
 
 	const pathFin: Vector2D[][] = [];
 	const visited = new Set<string>();
+	const pathPoints = new Set<string>();
 
 	const pointIndex = new Map(points.map((p, i) => [key(p), i]));
 
@@ -246,6 +242,8 @@ export const drawShadow = (ctx: CanvasRenderingContext2D, o: Vector2D, r: number
 
 		const p1 = points[(i - 1 + points.length) % points.length];
 		const p2 = points[(i + 1) % points.length];
+		if (pathPoints.has(key(p1))) return p1;
+		if (pathPoints.has(key(p2))) return p2;
 
 
 		const neib = []
@@ -284,12 +282,16 @@ export const drawShadow = (ctx: CanvasRenderingContext2D, o: Vector2D, r: number
 				for (let t = c - 1; t > -1; t--) {
 					if (samePoint(p, pathFin[t][0], 2)) {
 						pathFin[t].unshift(e);
+						pathPoints.delete(key(p))
+						pointIndex.has(key(e)) && pathPoints.add(key(e))
 						path.delete(e);
 						shadowL.delete(e);
 						continue rootLoop;
 					}
 					if (samePoint(p, pathFin[t][pathFin[t].length - 1], 2)) {
 						pathFin[t].push(e);
+						pathPoints.delete(key(p))
+						pointIndex.has(key(e)) && pathPoints.add(key(e))
 						path.delete(e);
 						shadowL.delete(e);
 						continue rootLoop;
@@ -299,7 +301,7 @@ export const drawShadow = (ctx: CanvasRenderingContext2D, o: Vector2D, r: number
 			pathFin[c] = [];
 		}
 		const l = pathFin[c].at(-1);
-		if (!l) {
+		if (l === undefined) {
 			const available = path.entries().next().value;
 			if (!available) {
 				break;
@@ -308,18 +310,21 @@ export const drawShadow = (ctx: CanvasRenderingContext2D, o: Vector2D, r: number
 			pathFin[c].push(e);
 			pathFin[c].push(p);
 			visited.add(key(p));
+			pointIndex.has(key(e)) && pathPoints.add(key(e))
 			path.delete(e);
 			shadowL.delete(e);
 			continue;
 		}
 
 		if (path.has(l)) {
-			pathFin[c].push(path.get(l)!);
+			const v = path.get(l)!;
+			pathFin[c].push(v);
 			path.delete(l);
 			continue;
 		}
 		if (shadowL.has(l)) {
-			pathFin[c].push(shadowL.get(l)!);
+			const v = shadowL.get(l)!;
+			pathFin[c].push(v);
 			shadowL.delete(l);
 			continue;
 		}
@@ -329,48 +334,44 @@ export const drawShadow = (ctx: CanvasRenderingContext2D, o: Vector2D, r: number
 			continue;
 		}
 
-		const pointIdx = pointIndex.get(key(l))
 		for (let t = c - 1; t >= 0; t--) {
 			for (let L = 0, R = pathFin[t].length - 1; L <= R; L++, R--) {
 				if (samePoint(l, pathFin[t][L], 0.01)) {
-					pathFin[t].splice(0, L + 1)
+					const removed = pathFin[t].splice(0, L + 1)
+					for (const p of removed) pathPoints.delete(key(p));
 					pathFin[t].unshift(...pathFin[c])
 					pathFin[c] = [];
 					continue rootLoop;
 				}
 				if (samePoint(l, pathFin[t][R], 0.01)) {
-					pathFin[t].splice(R, pathFin[t].length - R);
+					const removed = pathFin[t].splice(R, pathFin[t].length - R);
+					for (const p of removed) pathPoints.delete(key(p));
 					pathFin[t].push(...[...pathFin[c]].reverse());
 					pathFin[c] = [];
 					continue rootLoop;
 				}
 
-				if (pointIdx) {
-
-					const p1 = points[(pointIdx - 1 + points.length) % points.length];
-					const p2 = points[(pointIdx + 1) % points.length];
-					if (samePoint(p1, pathFin[t][L], 0.01) || samePoint(p2, pathFin[t][L], 0.01)) {
-						pathFin[t].splice(0, L)
-						pathFin[t].unshift(...pathFin[c])
-						pathFin[c] = [];
-						continue rootLoop;
-					}
-
-					if (samePoint(p1, pathFin[t][R], 0.01) || samePoint(p2, pathFin[t][R], 0.01)) {
-						pathFin[t].splice(R, (pathFin[t].length - R) - 1);
-						pathFin[t].push(...[...pathFin[c]].reverse());
-						pathFin[c] = [];
-						continue rootLoop;
-					}
-				}
 			}
 
 		}
 
+		pointIndex.has(key(l)) && pathPoints.add(key(l))
 
 		c++;
 	}
 
+
+	for (const [e, p] of path) {
+		ctx.beginPath()
+		ctx.lineWidth = 3
+		ctx.strokeStyle = "rgba(0,255,10,1)";
+		ctx.moveTo(e.x, e.y)
+		ctx.lineTo(p.x, p.y)
+		// 	ctx.arc(e.x, e.y, 5, 0, Math.PI * 2)
+		// 	ctx.closePath()
+		ctx.stroke()
+
+	}
 
 	// faceP.forEach(e => {
 	// 	ctx.beginPath()
@@ -380,98 +381,173 @@ export const drawShadow = (ctx: CanvasRenderingContext2D, o: Vector2D, r: number
 	// 	ctx.closePath()
 	// 	ctx.stroke()
 	// })
-	//
-	// visited.forEach(S => {
-	// 	const e = S.split(',').map(v => Number(v))
-	//
-	// 	ctx.beginPath();
-	// 	ctx.lineWidth = 2;
-	// 	ctx.strokeStyle = "rgba(0,100,100,1)";
-	//
-	// 	const s = 3; // half size of cross
-	//
-	// 	ctx.moveTo(e[0] - s, e[1] - s);
-	// 	ctx.lineTo(e[0] + s, e[1] + s);
-	//
-	// 	ctx.moveTo(e[0] - s, e[1] + s);
-	// 	ctx.lineTo(e[0] + s, e[1] - s);
-	//
-	// 	ctx.stroke();
-	// })
 
-	for (let t = pathFin.length - 1; t > 0; t--) {
-		const line = pathFin[t];
-		if (line.length < 1) continue;
-		const v1 = pointIndex.get(key(line[0]))
-		const v2 = pointIndex.get(key(line[line.length - 1]))
-		if (v1 === undefined && v2 === undefined) continue;
-		if (typeof v1 === "number") {
-			let dir: 0 | 1 | -1 = 0;
-			for (let i = 1; i < line.length; i++) {
-				const nxt = pointIndex.get(key(line[i]));
-				if (nxt !== undefined) { dir = v1 > nxt ? 1 : -1; break; }
-			}
 
-			dir === 0 && visited.clear()
-			let travel = 1
-			travelLoop:
-			while (points.length > travel) {
-				const nxt = dir === 0 ? getNeighbor(line[0]) : points[(v1 + (travel * dir) + points.length) % points.length];
-				if (!nxt) break;
-				for (let L = 0, R = pathFin[t - 1].length - 1; L <= R; L++, R--) {
-					if (samePoint(nxt, pathFin[t - 1][L], 0.01)) {
-						pathFin[t-1].splice(0, L)
-						pathFin[t-1].unshift(...line.reverse())
-						pathFin[t] = [];
-						break travelLoop;
-					}
-					if (samePoint(nxt, pathFin[t - 1][R], 0.01)) {
-						pathFin[t-1].splice(R, (pathFin[t-1].length - R) - 1);
-						pathFin[t-1].push(...line);
-						pathFin[t] = [];
-						break travelLoop;
-					}
-				}
+	pathPoints.forEach(S => {
+		const e = S.split(',').map(v => Number(v))
 
-				pathFin[t].unshift(nxt)
-				travel++;
-			}
+		ctx.beginPath();
+		ctx.lineWidth = 2;
+		ctx.strokeStyle = "rgba(79, 198, 167,1)";
+
+		const s = 10; // half size of cross
+
+		ctx.moveTo(e[0] - s, e[1] - s);
+		ctx.lineTo(e[0] + s, e[1] + s);
+
+		ctx.moveTo(e[0] - s, e[1] + s);
+		ctx.lineTo(e[0] + s, e[1] - s);
+
+		ctx.stroke();
+	})
+
+	if (pathPoints.size && pathPoints.size % 2 === 0) {
+		console.log("📉");
+		const sorted = [...pathPoints]
+			.map(s => {
+				const [x, y] = s.split(',').map(Number);
+				return { v: { x, y }, idx: pointIndex.get(s)! };
+			})
+			.sort((a, b) => a.idx - b.idx);
+		let maxGap = -1, splitAt = 0;
+		const n = sorted.length;
+		for (let i = 0; i < n; i++) {
+			const gap = (sorted[(i + 1) % n].idx - sorted[i].idx + points.length) % points.length;
+			if (gap > maxGap) { maxGap = gap; splitAt = i; }
 		}
-		if (typeof v2 === "number") {
-			let dir = 0;
-			for (let i = line.length - 2; i >= 0; i--) {
-				const nxt = pointIndex.get(key(line[i]));
-				if (nxt !== undefined) { dir = v2 > nxt ? 1 : -1; break; }
+		const pair: Vector2D[][] = [];
+		for (let k = 0; k < n; k += 2) {
+			const ai = (splitAt + 1 + k) % n;
+			const bi = (splitAt + 1 + k + 1) % n;
+			const a = sorted[ai].v;
+			const b = sorted[bi].v;
+			const chain: Vector2D[] = [a];
+			let i = (sorted[ai].idx + 1) % points.length;
+			const endIdx = sorted[bi].idx;
+			while (i !== endIdx) {
+				chain.push({ x: points[i].x, y: points[i].y });
+				i = (i + 1) % points.length;
 			}
+			chain.push(b);
+			pair.push(chain);
+		}
+		// pre-index pathFin endpoints for O(1) lookup
+		const endpointIdx = new Map<string, { t: number; atEnd: boolean }>();
+		for (let t = 0; t < pathFin.length; t++) {
+			if (pathFin[t].length === 0) continue;
+			endpointIdx.set(key(pathFin[t][0]), { t, atEnd: false });
+			endpointIdx.set(key(pathFin[t][pathFin[t].length - 1]), { t, atEnd: true });
+		}
 
-			dir === 0 && visited.clear()
-			let travel = 1
-			travelLoop:
-			while (points.length > travel) {
-				const nxt = dir === 0 ? getNeighbor(line[0]) : points[(v2 + (travel * dir) + points.length) % points.length];
-				if (!nxt) break;
-				for (let L = 0, R = pathFin[t - 1].length - 1; L <= R; L++, R--) {
-					if (samePoint(nxt, pathFin[t - 1][L], 0.01)) {
-						pathFin[t-1].splice(0, L)
-						pathFin[t-1].unshift(...line)
-						pathFin[t] = [];
-						break travelLoop;
-					}
-					if (samePoint(nxt, pathFin[t - 1][R], 0.01)) {
-						pathFin[t-1].splice(R, (pathFin[t-1].length - R) - 1);
-						pathFin[t-1].push(...line.reverse());
-						pathFin[t] = [];
-						break travelLoop;
-					}
+		for (const chain of pair) {
+			const a = chain[0];
+			const b = chain[chain.length - 1];
+
+			const aEntry = endpointIdx.get(key(a));
+			const bEntry = endpointIdx.get(key(b));
+			if (!aEntry || !bEntry) continue;
+
+			const aIdx = aEntry.t, aAtEnd = aEntry.atEnd;
+			const bIdx = bEntry.t, bAtStart = !bEntry.atEnd;
+
+			if (aIdx === bIdx) {
+				let aPos = -1, bPos = -1;
+				const p = pathFin[aIdx];
+				for (let i = 0; i < p.length; i++) {
+					if (samePoint(a, p[i], 0.01)) aPos = i;
+					if (samePoint(b, p[i], 0.01)) bPos = i;
 				}
+				if (aPos === -1 || bPos === -1) continue;
+				const lo = Math.min(aPos, bPos);
+				const hi = Math.max(aPos, bPos);
+				p.splice(lo + 1, hi - lo - 1, ...chain.slice(1, -1));
+			} else {
+				if (!aAtEnd) pathFin[aIdx].reverse();
+				if (!bAtStart) pathFin[bIdx].reverse();
 
-				line.push(nxt)
-				travel++;
+				pathFin[aIdx].pop();
+				pathFin[bIdx].shift();
+				pathFin[aIdx].push(...chain, ...pathFin[bIdx]);
+				pathFin[bIdx] = [];
 			}
 		}
 
 	}
 
+	// for (let t = pathFin.length - 1; t > 0; t--) {
+	// 	const line = pathFin[t];
+	// 	if (line.length < 1) continue;
+	// 	const v1 = pointIndex.get(key(line[0]))
+	// 	const v2 = pointIndex.get(key(line[line.length - 1]))
+	// 	if (v1 === undefined && v2 === undefined) continue;
+	// 	if (typeof v1 === "number") {
+	// 		let dir: 0 | 1 | -1 = 0;
+	// 		for (let i = 1; i < line.length; i++) {
+	// 			const nxt = pointIndex.get(key(line[i]));
+	// 			if (nxt !== undefined) { dir = ((nxt - v1 + points.length) % points.length) <= points.length / 2 ? -1 : 1; break; }
+	// 		}
+	//
+	// 		dir === 0 && visited.clear()
+	// 		let travel = 1
+	// 		travelLoop:
+	// 		while (points.length > travel) {
+	// 			const nxt = dir === 0 ? getNeighbor(line[0]) : points[(v1 + (travel * dir) + points.length) % points.length];
+	// 			if (!nxt) break;
+	// 			for (let L = 0, R = pathFin[t - 1].length - 1; L <= R; L++, R--) {
+	// 				if (samePoint(nxt, pathFin[t - 1][L], 0.01)) {
+	// 					pathFin[t - 1].splice(0, L)
+	// 					pathFin[t - 1].unshift(...line.reverse())
+	// 					pathFin[t] = [];
+	// 					break travelLoop;
+	// 				}
+	// 				if (samePoint(nxt, pathFin[t - 1][R], 0.01)) {
+	// 					pathFin[t - 1].splice(R + 1, pathFin[t - 1].length - R - 1);
+	// 					pathFin[t - 1].push(...line);
+	// 					pathFin[t] = [];
+	// 					break travelLoop;
+	// 				}
+	// 			}
+	//
+	// 			pathFin[t].unshift(nxt)
+	// 			travel++;
+	// 		}
+	// 	}
+	// 	if (pathFin[t].length === 0) continue;
+	// 	if (typeof v2 === "number") {
+	// 		let dir = 0;
+	// 		for (let i = line.length - 2; i >= 0; i--) {
+	// 			const nxt = pointIndex.get(key(line[i]));
+	// 			if (nxt !== undefined) { dir = ((nxt - v2 + points.length) % points.length) <= points.length / 2 ? -1 : 1; break; }
+	// 		}
+	//
+	// 		dir === 0 && visited.clear()
+	// 		let travel = 1
+	// 		travelLoop:
+	// 		while (points.length > travel) {
+	// 			const nxt = dir === 0 ? getNeighbor(line[line.length - 1]) : points[(v2 + (travel * dir) + points.length) % points.length];
+	// 			if (!nxt) break;
+	// 			for (let L = 0, R = pathFin[t - 1].length - 1; L <= R; L++, R--) {
+	// 				if (samePoint(nxt, pathFin[t - 1][L], 0.01)) {
+	// 					pathFin[t-1].splice(0, L)
+	// 					pathFin[t-1].unshift(...line)
+	// 					pathFin[t] = [];
+	// 					break travelLoop;
+	// 				}
+	// 				if (samePoint(nxt, pathFin[t - 1][R], 0.01)) {
+	// 					pathFin[t - 1].splice(R + 1, pathFin[t - 1].length - R - 1);
+	// 					pathFin[t - 1].push(...line.reverse());
+	// 					pathFin[t] = [];
+	// 					break travelLoop;
+	// 				}
+	// 			}
+	//
+	// 			line.push(nxt)
+	// 			travel++;
+	// 		}
+	// 	}
+	//
+	// }
+	//
 
 
 
@@ -493,19 +569,19 @@ export const drawShadow = (ctx: CanvasRenderingContext2D, o: Vector2D, r: number
 		// 	ctx.fillText(`${c}:${i}`, line[c].x + 8, line[c].y - 8);
 		// }
 		//
-		// ctx.beginPath()
-		// ctx.lineWidth = 1
-		// ctx.strokeStyle = "rgba(255,255,255,1)";
-		// ctx.arc(pathFin[i][pathFin[i].length - 1].x, pathFin[i][pathFin[i].length - 1].y, 10, 0, Math.PI * 2)
-		// ctx.closePath()
-		// ctx.stroke()
-		//
-		// ctx.beginPath()
-		// ctx.lineWidth = 1
-		// ctx.strokeStyle = "rgba(0,255,255,1)";
-		// ctx.arc(pathFin[i][0].x, pathFin[i][0].y, 5, 0, Math.PI * 2)
-		// ctx.closePath()
-		// ctx.stroke()
+		ctx.beginPath()
+		ctx.lineWidth = 3
+		ctx.strokeStyle = "rgba(255,255,255,1)";
+		ctx.arc(pathFin[i][pathFin[i].length - 1].x, pathFin[i][pathFin[i].length - 1].y, 10, 0, Math.PI * 2)
+		ctx.closePath()
+		ctx.stroke()
+
+		ctx.beginPath()
+		ctx.lineWidth = 3
+		ctx.strokeStyle = "rgba(0,255,255,1)";
+		ctx.arc(pathFin[i][0].x, pathFin[i][0].y, 5, 0, Math.PI * 2)
+		ctx.closePath()
+		ctx.stroke()
 	}
 
 }
