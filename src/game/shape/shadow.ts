@@ -237,6 +237,10 @@ export const drawShadow = (ctx: CanvasRenderingContext2D, o: Vector2D, r: number
 			const ccw = createPath(line, o, r, true);
 			ctx.fillStyle = color;
 			ctx.fill(ctx.isPointInPath(cw, o.x, o.y) ? ccw : cw) // draw shadow
+			if (fillColor) {
+				ctx.lineWidth = 1.5;
+				ctx.stroke(ctx.isPointInPath(cw, o.x, o.y) ? ccw : cw);
+			}
 		}
 		return;
 	}
@@ -568,6 +572,10 @@ export const drawShadow = (ctx: CanvasRenderingContext2D, o: Vector2D, r: number
 		ctx.lineWidth = 0;
 		ctx.fillStyle = color;
 		ctx.fill(ctx.isPointInPath(cw, o.x, o.y) ? ccw : cw) // draw shadow
+		if (fillColor) {
+			ctx.lineWidth = 1.5;
+			ctx.stroke(ctx.isPointInPath(cw, o.x, o.y) ? ccw : cw);
+		}
 
 
 

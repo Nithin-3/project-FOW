@@ -25,7 +25,7 @@ for (let i = 0; i < 5; i++) {
 	const y = Math.random() * world.height;
 	const points = 3 + Math.floor(Math.random() * 14);
 	const radius = 80 + Math.random() * 170;
-	drawRandomPolygon(worldCtx, {x,y}, points, radius);
+	drawRandomPolygon(worldCtx, { x, y }, points, radius);
 }
 
 const { width, height } = fog;
@@ -39,6 +39,10 @@ document.addEventListener("mousemove", (e) => {
 
 	const lights: Light[] = [
 		{ x: e.clientX, y: e.clientY, r: 150 },
+		{ x: 200, y: 200, r: 120 },
+		{ x: 800, y: 500, r: 140 },
+		{ x: 600, y: 700, r: 100 },
+
 	];
 
 	fogCtx.clearRect(0, 0, width, height);
