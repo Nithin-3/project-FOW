@@ -284,7 +284,8 @@ export const drawShadow = (ctx: CanvasRenderingContext2D, o: Vector2D, r: number
 			const sideN0 = line.x * (neib[0].y - p.y) - line.y * (neib[0].x - p.x);
 			return (sideO * sideN0 >= 0) ? neib[0] : neib[1];
 		}
-		return getNeighbor(p1, true) ?? getNeighbor(p2, true)
+		return null;
+		// return getNeighbor(p1, true) ?? getNeighbor(p2, true)
 	};
 
 
@@ -301,7 +302,7 @@ export const drawShadow = (ctx: CanvasRenderingContext2D, o: Vector2D, r: number
 				}
 				const [e, p] = available;
 				for (let t = c - 1; t > -1; t--) {
-					if (samePoint(p, pathFin[t][0], 2)) {
+					if (samePoint(p, pathFin[t][0])) {
 						pathFin[t].unshift(e);
 						pathPoints.delete(key(p))
 						pointIndex.has(key(e)) && pathPoints.add(key(e))
@@ -309,7 +310,7 @@ export const drawShadow = (ctx: CanvasRenderingContext2D, o: Vector2D, r: number
 						shadowL.delete(e);
 						continue rootLoop;
 					}
-					if (samePoint(p, pathFin[t][pathFin[t].length - 1], 2)) {
+					if (samePoint(p, pathFin[t][pathFin[t].length - 1])) {
 						pathFin[t].push(e);
 						pathPoints.delete(key(p))
 						pointIndex.has(key(e)) && pathPoints.add(key(e))
@@ -357,14 +358,14 @@ export const drawShadow = (ctx: CanvasRenderingContext2D, o: Vector2D, r: number
 
 		for (let t = c - 1; t >= 0; t--) {
 			for (let L = 0, R = pathFin[t].length - 1; L <= R; L++, R--) {
-				if (samePoint(l, pathFin[t][L], 0.01)) {
+				if (samePoint(l, pathFin[t][L])) {
 					const removed = pathFin[t].splice(0, L + 1)
 					for (const p of removed) pathPoints.delete(key(p));
 					pathFin[t].unshift(...pathFin[c])
 					pathFin[c] = [];
 					continue rootLoop;
 				}
-				if (samePoint(l, pathFin[t][R], 0.01)) {
+				if (samePoint(l, pathFin[t][R])) {
 					const removed = pathFin[t].splice(R, pathFin[t].length - R);
 					for (const p of removed) pathPoints.delete(key(p));
 					pathFin[t].push(...[...pathFin[c]].reverse());
@@ -413,9 +414,7 @@ export const drawShadow = (ctx: CanvasRenderingContext2D, o: Vector2D, r: number
 	}
 
 	if (pathPoints.size && pathPoints.size % 2 === 0) {
-		console.log("📉");
-		const sorted = [...pathPoints]
-			.map(s => {
+		const sorted = [...pathPoints] .map(s => {
 				const [x, y] = s.split(',').map(Number);
 				return { v: { x, y }, idx: pointIndex.get(s)! };
 			})
@@ -465,8 +464,8 @@ export const drawShadow = (ctx: CanvasRenderingContext2D, o: Vector2D, r: number
 				let aPos = -1, bPos = -1;
 				const p = pathFin[aIdx];
 				for (let i = 0; i < p.length; i++) {
-					if (samePoint(a, p[i], 0.01)) aPos = i;
-					if (samePoint(b, p[i], 0.01)) bPos = i;
+					if (samePoint(a, p[i])) aPos = i;
+					if (samePoint(b, p[i])) bPos = i;
 				}
 				if (aPos === -1 || bPos === -1) continue;
 				const lo = Math.min(aPos, bPos);
