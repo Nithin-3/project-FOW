@@ -1,10 +1,9 @@
 import { gameObjects } from "../init";
-import type { Vector2D } from "../types";
+import { GameObject, type Vector2D, type Polygon, type Color } from "../types";
 
-let wallId = 0;
-export function drawRandomPolygon(ctx: CanvasRenderingContext2D, center: Vector2D, numPoints: number, maxRadius: number) {
+export function drawRandomPolygon(ctx: CanvasRenderingContext2D, center: Vector2D, numPoints: number, maxRadius: number, color: Color = "#fff" as Color) {
 	const angleStep = (Math.PI * 2) / numPoints;
-	const pts: Vector2D[] = [];
+	const pts: Polygon = [];
 
 	for (let i = 0; i < numPoints; i++) {
 		const angle = i * angleStep + (Math.random() - 0.5) * 0.6;
@@ -23,6 +22,6 @@ export function drawRandomPolygon(ctx: CanvasRenderingContext2D, center: Vector2
 	ctx.closePath();
 	ctx.fill();
 
-	gameObjects.push({ id: wallId++, points: pts });
+	gameObjects.push(new GameObject(1, pts, color));
 }
 

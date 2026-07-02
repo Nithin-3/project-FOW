@@ -1,3 +1,3 @@
-import type { GameObjects } from "./types";
+import type { GameObject } from "./types";
 
-export const gameObjects:GameObjects[] = [];
+export const gameObjects:GameObject[] = [];
