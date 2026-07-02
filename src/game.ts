@@ -48,7 +48,7 @@ document.addEventListener("mousemove", (e) => {
 	fogCtx.clearRect(0, 0, width, height);
 
 	// Step 1: dark overlay
-	fogCtx.fillStyle = "rgba(0,0,0,0.85)";
+	fogCtx.fillStyle = "rgba(0,0,0,0.8)";
 	fogCtx.fillRect(0, 0, width, height);
 
 	// Step 2: accumulate visible regions from all lights
