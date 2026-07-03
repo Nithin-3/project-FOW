@@ -1,5 +1,5 @@
-import type { Vector2D, Polygon } from './types.js';
-import { subtractVectors, crossProduct, vectorLength, multiplyVector, addVectors, } from './utils.js';
+import type { Vector2D, Polygon } from './types';
+import { subtractVectors, crossProduct, vectorLength, multiplyVector, addVectors, } from './utils';
 
 // Perpendicular distance from point P to infinite line AB
 // formula: |(B-A) × (P-A)| / |B-A|

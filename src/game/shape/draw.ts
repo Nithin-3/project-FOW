@@ -1,7 +1,8 @@
 import { gameObjects } from "../init";
-import { GameObject, type Vector2D, type Polygon, type Color } from "../types";
+import { GameObject} from "../GameObject";
+import type { Color, Polygon, Vector2D } from "../types";
 
-export function drawRandomPolygon(ctx: CanvasRenderingContext2D, center: Vector2D, numPoints: number, maxRadius: number, color: Color = "#fff" as Color) {
+export function drawRandomPolygon(center: Vector2D, numPoints: number, maxRadius: number, color: Color = "#fff" as Color) {
 	const angleStep = (Math.PI * 2) / numPoints;
 	const pts: Polygon = [];
 
@@ -13,14 +14,6 @@ export function drawRandomPolygon(ctx: CanvasRenderingContext2D, center: Vector2
 			y: center.y + radius * Math.sin(angle)
 		});
 	}
-
-	ctx.beginPath();
-	pts.forEach((p, i) => {
-		if (i === 0) ctx.moveTo(p.x, p.y);
-		else ctx.lineTo(p.x, p.y);
-	});
-	ctx.closePath();
-	ctx.fill();
 
 	gameObjects.push(new GameObject(1, pts, color));
 }
