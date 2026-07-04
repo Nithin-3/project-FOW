@@ -21,15 +21,28 @@ const rgbRegex = /^rgba?\(\s*\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}(?:\s*,\s*(?:0|1
 const hslRegex = /^hsla?\(\s*\d{1,3}(?:deg)?\s*,\s*\d{1,3}%\s*,\s*\d{1,3}%(?:\s*,\s*(?:0|1|0?\.\d+))?\s*\)$/;
 
 function asColor(value: string): Color {
-  if (!hexColorRegex.test(value) && !rgbRegex.test(value) && !hslRegex.test(value)) throw new Error("Invalid color");
-  return value as Color;
+	if (!hexColorRegex.test(value) && !rgbRegex.test(value) && !hslRegex.test(value)) throw new Error("Invalid color");
+	return value as Color;
 }
-
+export type GameObjectData = {
+	zIndex: number;
+	points: Polygon;
+	color: Color;
+	collision: boolean;
+	texture: HTMLCanvasElement;
+	door?: Polygon;
+	boundingBox: {
+		v1: Vector2D;
+		v2: Vector2D;
+	};
+};
 export class GameObject {
 	zIndex: number;
 	points: Polygon;
 	color: Color;
-	wall: boolean;
+	collision: boolean;
+	texture: HTMLCanvasElement;
+	door?: Polygon;
 	private _boundingBox: { v1: Vector2D; v2: Vector2D; } = { v1: { x: Infinity, y: Infinity }, v2: { x: -Infinity, y: -Infinity } };
 	constructor(zIndex: number, points: Polygon, color: Color, doors?: Vector2D[]) {
 		this.zIndex = zIndex;
@@ -43,9 +56,10 @@ export class GameObject {
 				if (!this.points.some(p => vectorEquals(p, a)) || !this.points.some(p => vectorEquals(p, b))) throw new Error("Door point not found in polygon")
 				if (!areAdjacent(a, b, this.points)) throw new Error("Door points are not adjacent")
 			}
-			this.wall = true
+			this.door = doors
+			this.collision = true
 		} else {
-			this.wall = false
+			this.collision = false
 		}
 		for (const p of points) {
 			if (p.x < this._boundingBox.v1.x) this._boundingBox.v1.x = p.x;
@@ -53,9 +67,50 @@ export class GameObject {
 			if (p.x > this._boundingBox.v2.x) this._boundingBox.v2.x = p.x;
 			if (p.y > this._boundingBox.v2.y) this._boundingBox.v2.y = p.y;
 		}
+
+		const width = Math.ceil(this._boundingBox.v2.x - this._boundingBox.v1.x);
+		const height = Math.ceil(this._boundingBox.v2.y - this._boundingBox.v1.y);
+		this.texture = document.createElement("canvas");
+		this.texture.width = width;
+		this.texture.height = height;
+		const ctx = this.texture.getContext("2d")!;
+
+		ctx.beginPath();
+		ctx.moveTo(points[0].x - this._boundingBox.v1.x, points[0].y - this._boundingBox.v1.y);
+
+		for (let i = 1; i < points.length; i++)
+			ctx.lineTo(points[i].x - this._boundingBox.v1.x, points[i].y - this._boundingBox.v1.y);
+		ctx.closePath();
+		ctx.fillStyle = color;
+		ctx.fill();
+
+
 	}
 
 	get boundingBox(): { v1: Vector2D; v2: Vector2D; } {
 		return this._boundingBox;
+	}
+
+	render(ctx: CanvasRenderingContext2D, origin: Vector2D):Polygon {
+		ctx.drawImage(this.texture, origin.x, origin.y);
+		return this.points.map(p => ({
+			x: origin.x + (p.x - this._boundingBox.v1.x),
+			y: origin.y + (p.y - this._boundingBox.v1.y)
+		}));
+	}
+
+	object(): GameObjectData {
+		return {
+			zIndex: this.zIndex,
+			color: this.color,
+			collision: this.collision,
+			points: this.points.map(p => ({ ...p })),
+			texture: this.texture,
+			door: this.door?.map(p => ({ ...p })),
+			boundingBox: {
+				v1: { ...this._boundingBox.v1 },
+				v2: { ...this._boundingBox.v2 }
+			}
+		};
 	}
 }
