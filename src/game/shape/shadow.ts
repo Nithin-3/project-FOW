@@ -1,6 +1,6 @@
 import { circlePolygonIntersect, lineIntersectPolygon, pointInPolygon, segmentIntersect } from "../tools";
 import type { Polygon, Vector2D } from "../types";
-import { addVectors, normalizeVector, scaleVector, subtractVectors, vectorLength, vectorLerp } from "../utils";
+import { subtractVectors, vectorLerp } from "../utils";
 
 const EPS = 0.0001;
 
@@ -12,9 +12,7 @@ function hasLOS(A: Vector2D, B: Vector2D, polygon: Polygon, exclude?: Vector2D):
 	for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
 		const hit = segmentIntersect(A, B, polygon[j], polygon[i]);
 		if (!hit) continue;
-		// ignore excluded point (with epsilon tolerance)
-		if (exclude && samePoint(hit, exclude, EPS)) continue; // ignore this hit
-		// any other hit = blocked LOS
+		if (exclude && samePoint(hit, exclude, EPS)) continue;
 		return false;
 	}
 	return true;
@@ -50,11 +48,12 @@ function createPath(line: Vector2D[], o: Vector2D, r: number, counterclockwise: 
 
 	return path;
 }
-export const drawShadow = (ctx: CanvasRenderingContext2D, o: Vector2D, r: number, points: Polygon, fillColor?: string) => {
+export const drawShadow = (ctx: OffscreenCanvasRenderingContext2D, o: Vector2D, r: number, points: Polygon, fillColor?: string) => {
 	const color = fillColor ?? "rgba(0,0,0,0.85)";
 
 	if (points.length < 3) throw Error("invalid polygon");
 
+	const rSq = r * r;
 	const path = new Map<Vector2D, Vector2D>();
 	const faceP: Vector2D[] = []
 	const facePSet = new Set<string>()
@@ -63,7 +62,7 @@ export const drawShadow = (ctx: CanvasRenderingContext2D, o: Vector2D, r: number
 	const key = (p: Vector2D) => `${p.x},${p.y}`;
 	if (pointInPolygon(o, points)) {
 		const interset = circlePolygonIntersect(o, r, points);
-		if (interset.length == 0 && distSq(points[1], o) > r * r) {
+		if (interset.length == 0 && distSq(points[1], o) > rSq) {
 			return;
 		}
 		if (interset.length == 0) {
@@ -86,43 +85,52 @@ export const drawShadow = (ctx: CanvasRenderingContext2D, o: Vector2D, r: number
 		}
 
 		for (const p of points) {
-			const dir = subtractVectors(p, o);
-			const d = vectorLength(dir);
-			if (d < r) {
+			const dx = p.x - o.x, dy = p.y - o.y;
+			if (dx * dx + dy * dy < rSq) {
 				faceP.push(p)
 				facePSet.add(key(p))
 			}
 		}
 		interset.forEach(p => {
 
-			if (distSq(p.A, o) < r * r) path.set(p, p.A)
-			else if (distSq(p.B, o) < r * r) path.set(p, p.B)
+			if (distSq(p.A, o) < rSq) path.set(p, p.A)
+			else if (distSq(p.B, o) < rSq) path.set(p, p.B)
 			else wait.push(p)
 		})
 		if (wait.length && wait.length % 2 === 0) {
-			for (let i = 0; i < wait.length; i++) {
-				for (let j = i + 1; j < wait.length; j++) {
-					const a = wait[i], b = wait[j];
-					// same edge = same A and B vertices
-					if (samePoint(a.A, b.A) && samePoint(a.B, b.B)) {
-						// a and b are the two circle crossings of one edge
-						path.set({ x: a.x, y: a.y }, { x: b.x, y: b.y });
-					}
+			const edgeMap = new Map<string, Vector2D & { A: Vector2D, B: Vector2D }>();
+			for (const pt of wait) {
+				const qa = `${Math.round(pt.A.x * 1000)},${Math.round(pt.A.y * 1000)}`;
+				const qb = `${Math.round(pt.B.x * 1000)},${Math.round(pt.B.y * 1000)}`;
+				const ek = qa < qb ? `${qa}|${qb}` : `${qb}|${qa}`;
+				const prev = edgeMap.get(ek);
+				if (prev) {
+					path.set({ x: prev.x, y: prev.y }, { x: pt.x, y: pt.y });
+					edgeMap.delete(ek);
+				} else {
+					edgeMap.set(ek, pt);
 				}
 			}
 		}
 	} else {
+		const edges: { a: Vector2D; b: Vector2D }[] = [];
+		for (let i = 0; i < points.length; i++)
+			edges.push({ a: points[i], b: points[(i + 1) % points.length] });
+
+		let los = 0;
 		for (const p of points) {
-			const dir = subtractVectors(p, o);
-			const d = vectorLength(dir);
-			if (d < r) {
-				const end = addVectors(o, scaleVector(normalizeVector(dir), r));
-				const ray = addVectors(o, scaleVector(normalizeVector(dir), window.innerWidth));	// window.innerWidth is a bios to find a visible point aka max size polygon can have 
-				// if polygon width is more then bios ray is cast many for that huge polygon
+			const dx = p.x - o.x, dy = p.y - o.y;
+			const d = Math.sqrt(dx * dx + dy * dy);
+			if (d > 0 && d < r) {
+				const nx = dx / d, ny = dy / d;
+				const end = { x: o.x + nx * r, y: o.y + ny * r };
+				const ray = { x: o.x + nx * window.innerWidth, y: o.y + ny * window.innerWidth };
+
 				if (hasLOS(o, ray, points, p)) {
 					path.set(end, p)
 					faceP.push(p)
 					facePSet.add(key(p))
+					los++;
 					continue;
 				}
 
@@ -133,28 +141,51 @@ export const drawShadow = (ctx: CanvasRenderingContext2D, o: Vector2D, r: number
 				if (!pointInPolygon(nudgedToRay, points)) {
 					const outwardHits: (Vector2D & { A: Vector2D; B: Vector2D })[] = [];
 					const backwardHits: (Vector2D & { A: Vector2D; B: Vector2D })[] = [];
-					for (let i = 0, j = points.length - 1; i < points.length; j = i++) {
-						const h1 = segmentIntersect(p, ray, points[j], points[i]);
-						if (h1) outwardHits.push({ x: h1.x, y: h1.y, A: points[j], B: points[i] });
-						const h2 = segmentIntersect(p, o, points[j], points[i]);
-						if (h2) backwardHits.push({ x: h2.x, y: h2.y, A: points[j], B: points[i] });
+					const px = p.x, py = p.y;
+					const rayX = ray.x, rayY = ray.y;
+					const ox = o.x, oy = o.y;
+					for (const { a: c, b: d } of edges) {
+						const sx = d.x - c.x, sy = d.y - c.y;
+						const cax = c.x - px, cay = c.y - py;
+
+						const rx1 = rayX - px, ry1 = rayY - py;
+						const denom1 = rx1 * sy - ry1 * sx;
+						if (denom1 !== 0) {
+							const t1 = (cax * sy - cay * sx) / denom1;
+							const u1 = (cax * ry1 - cay * rx1) / denom1;
+							if (t1 >= 0 && t1 <= 1 && u1 >= 0 && u1 <= 1)
+								outwardHits.push({ x: px + rx1 * t1, y: py + ry1 * t1, A: c, B: d });
+						}
+
+						const rx2 = ox - px, ry2 = oy - py;
+						const denom2 = rx2 * sy - ry2 * sx;
+						if (denom2 !== 0) {
+							const t2 = (cax * sy - cay * sx) / denom2;
+							const u2 = (cax * ry2 - cay * rx2) / denom2;
+							if (t2 >= 0 && t2 <= 1 && u2 >= 0 && u2 <= 1)
+								backwardHits.push({ x: px + rx2 * t2, y: py + ry2 * t2, A: c, B: d });
+						}
 					}
 					const interset: typeof outwardHits = [];
+					const dedupSet = new Set<string>();
 					for (const pt of outwardHits) {
-						if (!interset.some(u => Math.abs(u.x - pt.x) < 0.001 && Math.abs(u.y - pt.y) < 0.001)) {
-							interset.push(pt);
-						}
+						const qk = `${Math.round(pt.x * 1000)},${Math.round(pt.y * 1000)}`;
+						if (dedupSet.has(qk)) continue;
+						dedupSet.add(qk);
+						interset.push(pt);
 					}
 					sortByDistance(interset, p);
 					if (interset.length > 2) {
 						const doubleCheck: typeof backwardHits = [];
+						const dedupSet2 = new Set<string>();
 						for (const pt of backwardHits) {
-							if (!doubleCheck.some(u => Math.abs(u.x - pt.x) < 0.001 && Math.abs(u.y - pt.y) < 0.001)) {
-								doubleCheck.push(pt);
-							}
+							const qk = `${Math.round(pt.x * 1000)},${Math.round(pt.y * 1000)}`;
+							if (dedupSet2.has(qk)) continue;
+							dedupSet2.add(qk);
+							doubleCheck.push(pt);
 						}
 						if (doubleCheck.length < 2) {
-							if (distSq(o, interset[1]) < r * r) {
+							if (distSq(o, interset[1]) < rSq) {
 								path.set(interset[1], p)
 								if (facePSet.has(key(interset[1].A))) {
 									path.set(interset[1].A, interset[1]);
@@ -178,8 +209,9 @@ export const drawShadow = (ctx: CanvasRenderingContext2D, o: Vector2D, r: number
 					if (intersections.length == 0) {
 						faceP.push(p)
 						facePSet.add(key(p))
-						if (shadowL.has(p)) {
-							path.set(p, shadowL.get(p)!);
+						const slp = shadowL.get(p);
+						if (slp) {
+							path.set(p, slp);
 						}
 					}
 				}
@@ -189,54 +221,57 @@ export const drawShadow = (ctx: CanvasRenderingContext2D, o: Vector2D, r: number
 		}
 
 
-		for (const cp of circlePolygonIntersect(o, r, points)) {
-			if (pointInPolygon(vectorLerp(cp, o, 0.01), points) || lineIntersectPolygon(cp, o, points).length > 1) continue;
-			if (distSq(cp.A, o) < r * r) {
-				if (shadowL.has(cp.A))
-					path.set({ x: cp.x, y: cp.y }, distSq({ x: cp.x, y: cp.y }, shadowL.get(cp.A)!) < distSq({ x: cp.x, y: cp.y }, cp.A) ? shadowL.get(cp.A)! : cp.A);
-				else
-					path.set({ x: cp.x, y: cp.y }, cp.A);
-			} else if (distSq(cp.B, o) < r * r) {
-				if (shadowL.has(cp.B))
-					path.set({ x: cp.x, y: cp.y }, distSq({ x: cp.x, y: cp.y }, shadowL.get(cp.B)!) < distSq({ x: cp.x, y: cp.y }, cp.B) ? shadowL.get(cp.B)! : cp.B);
-				else
-					path.set({ x: cp.x, y: cp.y }, cp.B);
-			} else {
-				wait.push(cp) // if 2 collition on same line
+		if (los < 2)
+			for (const cp of circlePolygonIntersect(o, r, points)) {
+				const lerpCp = vectorLerp(cp, o, 0.01);
+				// ctx.beginPath()
+				// ctx.moveTo(o.x, o.y);
+				// ctx.lineTo(cp.x, cp.y);
+				// ctx.strokeStyle = 'red';
+				// ctx.stroke()
+				if (pointInPolygon(lerpCp, points) || lineIntersectPolygon(cp, o, points).length > 1) continue;
+				if (distSq(cp.A, o) < rSq) {
+					const vA = shadowL.get(cp.A);
+					if (vA)
+						path.set({ x: cp.x, y: cp.y }, distSq(cp, vA) < distSq(cp, cp.A) ? vA : cp.A);
+					else
+						path.set({ x: cp.x, y: cp.y }, cp.A);
+				} else if (distSq(cp.B, o) < rSq) {
+					const vB = shadowL.get(cp.B);
+					if (vB)
+						path.set({ x: cp.x, y: cp.y }, distSq(cp, vB) < distSq(cp, cp.B) ? vB : cp.B);
+					else
+						path.set({ x: cp.x, y: cp.y }, cp.B);
+				} else {
+					wait.push(cp)
+				}
 			}
-		}
 
 
 		if (wait.length && wait.length % 2 === 0) {
-			for (let i = 0; i < wait.length; i++) {
-				for (let j = i + 1; j < wait.length; j++) {
-					const a = wait[i], b = wait[j];
-					// same edge = same A and B vertices
-					if (samePoint(a.A, b.A) && samePoint(a.B, b.B)) {
-						// a and b are the two circle crossings of one edge
-						path.set({ x: a.x, y: a.y }, { x: b.x, y: b.y });
-					}
+			const edgeMap = new Map<string, Vector2D & { A: Vector2D, B: Vector2D }>();
+			for (const pt of wait) {
+				const qa = `${Math.round(pt.A.x * 1000)},${Math.round(pt.A.y * 1000)}`;
+				const qb = `${Math.round(pt.B.x * 1000)},${Math.round(pt.B.y * 1000)}`;
+				const ek = qa < qb ? `${qa}|${qb}` : `${qb}|${qa}`;
+				const prev = edgeMap.get(ek);
+				if (prev) {
+					path.set({ x: prev.x, y: prev.y }, { x: pt.x, y: pt.y });
+					edgeMap.delete(ek);
+				} else {
+					edgeMap.set(ek, pt);
 				}
 			}
 		}
 	}
 
 
-	// faceP.forEach(e => {
-	// 	ctx.beginPath()
-	// 	ctx.lineWidth = 1
-	// 	ctx.strokeStyle = "rgba(255,0,10,1)";
-	// 	ctx.arc(e.x, e.y, 5, 0, Math.PI * 2)
-	// 	ctx.closePath()
-	// 	ctx.stroke()
-	// })
-
 	if (path.size == 1) {
 		for (const line of path) {
 			const cw = createPath(line, o, r, false);
 			const ccw = createPath(line, o, r, true);
 			ctx.fillStyle = color;
-			ctx.fill(ctx.isPointInPath(cw, o.x, o.y) ? ccw : cw) // draw shadow
+			ctx.fill(ctx.isPointInPath(cw, o.x, o.y) ? ccw : cw)
 			if (fillColor) {
 				ctx.lineWidth = 1.5;
 				ctx.stroke(ctx.isPointInPath(cw, o.x, o.y) ? ccw : cw);
@@ -253,7 +288,7 @@ export const drawShadow = (ctx: CanvasRenderingContext2D, o: Vector2D, r: number
 
 	const getNeighbor = (p: Vector2D, rec: boolean = false): Vector2D | null => {
 
-		if (distSq(o, p) > r * r) return null;
+		if (distSq(o, p) > rSq) return null;
 		const k = key(p);
 		if (visited.has(k) && rec) return null;
 		if (shadowL.has(p) && rec) return null;
@@ -263,14 +298,18 @@ export const drawShadow = (ctx: CanvasRenderingContext2D, o: Vector2D, r: number
 
 		const p1 = points[(i - 1 + points.length) % points.length];
 		const p2 = points[(i + 1) % points.length];
-		if (pathPoints.has(key(p1))) return p1;
-		if (pathPoints.has(key(p2))) return p2;
-
+		const k1 = key(p1);
+		const k2 = key(p2);
+		if (pathPoints.has(k1)) return p1;
+		if (pathPoints.has(k2)) return p2;
 
 		const neib = []
-		for (const candidate of [p1, p2].filter(q => !shadowL.has(q) && !visited.has(key(q)))) {
+		const candidates: Vector2D[] = [];
+		if (!shadowL.has(p1) && !visited.has(k1)) candidates.push(p1);
+		if (!shadowL.has(p2) && !visited.has(k2)) candidates.push(p2);
+		for (const candidate of candidates) {
 			if (facePSet.has(key(candidate))) {
-				facePSet.delete(key(p));
+				facePSet.delete(k);
 				neib.push(candidate)
 			}
 		}
@@ -285,7 +324,6 @@ export const drawShadow = (ctx: CanvasRenderingContext2D, o: Vector2D, r: number
 			return (sideO * sideN0 >= 0) ? neib[0] : neib[1];
 		}
 		return null;
-		// return getNeighbor(p1, true) ?? getNeighbor(p2, true)
 	};
 
 
@@ -301,19 +339,21 @@ export const drawShadow = (ctx: CanvasRenderingContext2D, o: Vector2D, r: number
 					break;
 				}
 				const [e, p] = available;
+				const ek0 = key(e);
+				const pk0 = key(p);
 				for (let t = c - 1; t > -1; t--) {
 					if (samePoint(p, pathFin[t][0])) {
 						pathFin[t].unshift(e);
-						pathPoints.delete(key(p))
-						pointIndex.has(key(e)) && pathPoints.add(key(e))
+						pathPoints.delete(pk0)
+						if (pointIndex.has(ek0)) pathPoints.add(ek0)
 						path.delete(e);
 						shadowL.delete(e);
 						continue rootLoop;
 					}
 					if (samePoint(p, pathFin[t][pathFin[t].length - 1])) {
 						pathFin[t].push(e);
-						pathPoints.delete(key(p))
-						pointIndex.has(key(e)) && pathPoints.add(key(e))
+						pathPoints.delete(pk0)
+						if (pointIndex.has(ek0)) pathPoints.add(ek0)
 						path.delete(e);
 						shadowL.delete(e);
 						continue rootLoop;
@@ -329,10 +369,12 @@ export const drawShadow = (ctx: CanvasRenderingContext2D, o: Vector2D, r: number
 				break;
 			}
 			const [e, p] = available;
+			const ek1 = key(e);
+			const pk1 = key(p);
 			pathFin[c].push(e);
 			pathFin[c].push(p);
-			visited.add(key(p));
-			pointIndex.has(key(e)) && pathPoints.add(key(e))
+			visited.add(pk1);
+			if (pointIndex.has(ek1)) pathPoints.add(ek1)
 			path.delete(e);
 			shadowL.delete(e);
 			continue;
@@ -344,9 +386,9 @@ export const drawShadow = (ctx: CanvasRenderingContext2D, o: Vector2D, r: number
 			path.delete(l);
 			continue;
 		}
-		if (shadowL.has(l)) {
-			const v = shadowL.get(l)!;
-			pathFin[c].push(v);
+		const sv = shadowL.get(l);
+		if (sv) {
+			pathFin[c].push(sv);
 			shadowL.delete(l);
 			continue;
 		}
@@ -377,20 +419,11 @@ export const drawShadow = (ctx: CanvasRenderingContext2D, o: Vector2D, r: number
 
 		}
 
-		pointIndex.has(key(l)) && pathPoints.add(key(l))
+		const lk = key(l);
+		if (pointIndex.has(lk)) pathPoints.add(lk)
 
 		c++;
 	}
-
-
-	// faceP.forEach(e => {
-	// 	ctx.beginPath()
-	// 	ctx.lineWidth = 3
-	// 	ctx.strokeStyle = "rgba(0,255,10,1)";
-	// 	ctx.arc(e.x, e.y, 5, 0, Math.PI * 2)
-	// 	ctx.closePath()
-	// 	ctx.stroke()
-	// })
 
 
 	if (!fillColor) {
@@ -414,10 +447,10 @@ export const drawShadow = (ctx: CanvasRenderingContext2D, o: Vector2D, r: number
 	}
 
 	if (pathPoints.size && pathPoints.size % 2 === 0) {
-		const sorted = [...pathPoints] .map(s => {
-				const [x, y] = s.split(',').map(Number);
-				return { v: { x, y }, idx: pointIndex.get(s)! };
-			})
+		const sorted = [...pathPoints].map(s => {
+			const [x, y] = s.split(',').map(Number);
+			return { v: { x, y }, idx: pointIndex.get(s)! };
+		})
 			.sort((a, b) => a.idx - b.idx);
 		let maxGap = -1, splitAt = 0;
 		const n = sorted.length;
@@ -441,7 +474,6 @@ export const drawShadow = (ctx: CanvasRenderingContext2D, o: Vector2D, r: number
 			chain.push(b);
 			pair.push(chain);
 		}
-		// pre-index pathFin endpoints for O(1) lookup
 		const endpointIdx = new Map<string, { t: number; atEnd: boolean }>();
 		for (let t = 0; t < pathFin.length; t++) {
 			if (pathFin[t].length === 0) continue;
@@ -452,9 +484,11 @@ export const drawShadow = (ctx: CanvasRenderingContext2D, o: Vector2D, r: number
 		for (const chain of pair) {
 			const a = chain[0];
 			const b = chain[chain.length - 1];
+			const aKey = key(a);
+			const bKey = key(b);
 
-			const aEntry = endpointIdx.get(key(a));
-			const bEntry = endpointIdx.get(key(b));
+			const aEntry = endpointIdx.get(aKey);
+			const bEntry = endpointIdx.get(bKey);
 			if (!aEntry || !bEntry) continue;
 
 			const aIdx = aEntry.t, aAtEnd = aEntry.atEnd;
@@ -484,80 +518,6 @@ export const drawShadow = (ctx: CanvasRenderingContext2D, o: Vector2D, r: number
 
 	}
 
-	// for (let t = pathFin.length - 1; t > 0; t--) {
-	// 	const line = pathFin[t];
-	// 	if (line.length < 1) continue;
-	// 	const v1 = pointIndex.get(key(line[0]))
-	// 	const v2 = pointIndex.get(key(line[line.length - 1]))
-	// 	if (v1 === undefined && v2 === undefined) continue;
-	// 	if (typeof v1 === "number") {
-	// 		let dir: 0 | 1 | -1 = 0;
-	// 		for (let i = 1; i < line.length; i++) {
-	// 			const nxt = pointIndex.get(key(line[i]));
-	// 			if (nxt !== undefined) { dir = ((nxt - v1 + points.length) % points.length) <= points.length / 2 ? -1 : 1; break; }
-	// 		}
-	//
-	// 		dir === 0 && visited.clear()
-	// 		let travel = 1
-	// 		travelLoop:
-	// 		while (points.length > travel) {
-	// 			const nxt = dir === 0 ? getNeighbor(line[0]) : points[(v1 + (travel * dir) + points.length) % points.length];
-	// 			if (!nxt) break;
-	// 			for (let L = 0, R = pathFin[t - 1].length - 1; L <= R; L++, R--) {
-	// 				if (samePoint(nxt, pathFin[t - 1][L], 0.01)) {
-	// 					pathFin[t - 1].splice(0, L)
-	// 					pathFin[t - 1].unshift(...line.reverse())
-	// 					pathFin[t] = [];
-	// 					break travelLoop;
-	// 				}
-	// 				if (samePoint(nxt, pathFin[t - 1][R], 0.01)) {
-	// 					pathFin[t - 1].splice(R + 1, pathFin[t - 1].length - R - 1);
-	// 					pathFin[t - 1].push(...line);
-	// 					pathFin[t] = [];
-	// 					break travelLoop;
-	// 				}
-	// 			}
-	//
-	// 			pathFin[t].unshift(nxt)
-	// 			travel++;
-	// 		}
-	// 	}
-	// 	if (pathFin[t].length === 0) continue;
-	// 	if (typeof v2 === "number") {
-	// 		let dir = 0;
-	// 		for (let i = line.length - 2; i >= 0; i--) {
-	// 			const nxt = pointIndex.get(key(line[i]));
-	// 			if (nxt !== undefined) { dir = ((nxt - v2 + points.length) % points.length) <= points.length / 2 ? -1 : 1; break; }
-	// 		}
-	//
-	// 		dir === 0 && visited.clear()
-	// 		let travel = 1
-	// 		travelLoop:
-	// 		while (points.length > travel) {
-	// 			const nxt = dir === 0 ? getNeighbor(line[line.length - 1]) : points[(v2 + (travel * dir) + points.length) % points.length];
-	// 			if (!nxt) break;
-	// 			for (let L = 0, R = pathFin[t - 1].length - 1; L <= R; L++, R--) {
-	// 				if (samePoint(nxt, pathFin[t - 1][L], 0.01)) {
-	// 					pathFin[t-1].splice(0, L)
-	// 					pathFin[t-1].unshift(...line)
-	// 					pathFin[t] = [];
-	// 					break travelLoop;
-	// 				}
-	// 				if (samePoint(nxt, pathFin[t - 1][R], 0.01)) {
-	// 					pathFin[t - 1].splice(R + 1, pathFin[t - 1].length - R - 1);
-	// 					pathFin[t - 1].push(...line.reverse());
-	// 					pathFin[t] = [];
-	// 					break travelLoop;
-	// 				}
-	// 			}
-	//
-	// 			line.push(nxt)
-	// 			travel++;
-	// 		}
-	// 	}
-	//
-	// }
-	//
 
 
 
@@ -566,25 +526,16 @@ export const drawShadow = (ctx: CanvasRenderingContext2D, o: Vector2D, r: number
 		if (line.length < 1) continue;
 		const cw = createPath(line, o, r, false);
 		const ccw = createPath(line, o, r, true);
-		// ctx.strokeStyle = `hsl(${(i * 137.5) % 360}, 100%, 50%)`;
-		// ctx.lineWidth = (pathFin.length + 1) - i
 		ctx.lineWidth = 0;
 		ctx.fillStyle = color;
-		ctx.fill(ctx.isPointInPath(cw, o.x, o.y) ? ccw : cw) // draw shadow
+		ctx.fill(ctx.isPointInPath(cw, o.x, o.y) ? ccw : cw)
 		if (fillColor) {
 			ctx.lineWidth = 1.5;
 			ctx.stroke(ctx.isPointInPath(cw, o.x, o.y) ? ccw : cw);
 		}
 
 
-
-		// for (let c = 1; c < line.length - 1; c++) {
-		//
-		// 	ctx.fillStyle = `hsl(${(i + 1 * 137.5) % 360}, 100%, 60%)`;
-		// 	ctx.fillText(`${c}:${i}`, line[c].x + 8, line[c].y - 8);
-		// }
-		//
-	if (!fillColor) {
+		if (!fillColor) {
 			ctx.beginPath()
 			ctx.lineWidth = 3
 			ctx.strokeStyle = "rgba(255,255,255,1)";

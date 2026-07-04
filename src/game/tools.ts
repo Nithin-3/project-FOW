@@ -57,10 +57,12 @@ export function lineIntersectPolygon(p1: Vector2D, p2: Vector2D, polygon: Polygo
 		if (hit) pts.push({ x: hit.x, y: hit.y, A: polygon[j], B: polygon[i] });
 	}
 	const unique: (Vector2D & { A: Vector2D; B: Vector2D })[] = [];
+	const dedupSet = new Set<string>();
 	for (const p of pts) {
-		if (!unique.some(u => Math.abs(u.x - p.x) < 0.001 && Math.abs(u.y - p.y) < 0.001)) {
-			unique.push(p);
-		}
+		const qk = `${Math.round(p.x * 1000)},${Math.round(p.y * 1000)}`;
+		if (dedupSet.has(qk)) continue;
+		dedupSet.add(qk);
+		unique.push(p);
 	}
 	return unique;
 }
@@ -106,10 +108,12 @@ export function circlePolygonIntersect(o: Vector2D, r: number, polygon: Polygon)
 		}
 	}
 	const unique: (Vector2D & { A: Vector2D; B: Vector2D })[] = [];
+	const dedupSet = new Set<string>();
 	for (const p of pts) {
-		if (!unique.some(u => Math.abs(u.x - p.x) < 0.001 && Math.abs(u.y - p.y) < 0.001)) {
-			unique.push(p);
-		}
+		const qk = `${Math.round(p.x * 1000)},${Math.round(p.y * 1000)}`;
+		if (dedupSet.has(qk)) continue;
+		dedupSet.add(qk);
+		unique.push(p);
 	}
 	return unique;
 }
