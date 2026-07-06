@@ -1,4 +1,6 @@
 import type { Vector2D, Polygon, Color } from "./types";
+import { Uid } from "./uid";
+import { cross } from "./utils";
 
 export function vectorEquals(a: Vector2D, b: Vector2D): boolean {
 	return a.x === b.x && a.y === b.y;
@@ -38,13 +40,15 @@ export type GameObjectData = {
 };
 export class GameObject {
 	zIndex: number;
-	points: Polygon;
+	readonly points: Polygon;
+	readonly id:number;
 	color: Color;
 	collision: boolean;
 	texture: HTMLCanvasElement;
 	door?: Polygon;
 	private _boundingBox: { v1: Vector2D; v2: Vector2D; } = { v1: { x: Infinity, y: Infinity }, v2: { x: -Infinity, y: -Infinity } };
 	constructor(zIndex: number, points: Polygon, color: Color, doors?: Vector2D[]) {
+		this.id = Uid.next().value!
 		this.zIndex = zIndex;
 		this.points = points;
 		this.color = asColor(color);
@@ -91,12 +95,53 @@ export class GameObject {
 		return this._boundingBox;
 	}
 
-	render(ctx: CanvasRenderingContext2D, origin: Vector2D):Polygon {
-		ctx.drawImage(this.texture, origin.x, origin.y);
+	localPoints(origin: Vector2D) {
 		return this.points.map(p => ({
 			x: origin.x + (p.x - this._boundingBox.v1.x),
 			y: origin.y + (p.y - this._boundingBox.v1.y)
 		}));
+	}
+
+	render(ctx: CanvasRenderingContext2D, origin: Vector2D): Polygon {
+		ctx.drawImage(this.texture, origin.x, origin.y);
+		return this.localPoints(origin);
+	}
+
+	convexHull(): Polygon {
+		if (this.points.length <= 3)
+			return [...this.points];
+
+		const pts = [...this.points].sort((a, b) =>
+			a.x === b.x ? a.y - b.y : a.x - b.x
+		);
+
+		const lower: Polygon = [];
+		for (const p of pts) {
+			while (
+				lower.length >= 2 &&
+				cross(lower[lower.length - 2], lower[lower.length - 1], p) <= 0
+			) {
+				lower.pop();
+			}
+			lower.push(p);
+		}
+
+		const upper: Polygon = [];
+		for (let i = pts.length - 1; i >= 0; i--) {
+			const p = pts[i];
+			while (
+				upper.length >= 2 &&
+				cross(upper[upper.length - 2], upper[upper.length - 1], p) <= 0
+			) {
+				upper.pop();
+			}
+			upper.push(p);
+		}
+
+		lower.pop();
+		upper.pop();
+
+		return lower.concat(upper);
 	}
 
 	object(): GameObjectData {
