@@ -52,11 +52,11 @@ export class Camera {
 		return { x: cx + this.cam.TL.x, y: cy + this.cam.TL.y };
 	}
 
-	isRender(v1: Vector2D, v2: Vector2D) { // pass boundingBox of game object
-		if (v1.x < this.cam.TL.x && v2.x < this.cam.TL.x) return false;
-		if (v1.x > this.cam.TL.x + this.cam.width && v2.x > this.cam.TL.x + this.cam.width) return false;
-		if (v1.y < this.cam.TL.y && v2.y < this.cam.TL.y) return false;
-		if (v1.y > this.cam.TL.y + this.cam.width && v2.y > this.cam.TL.y + this.cam.width) return false;
+	isRender(box:{ v1: Vector2D, v2: Vector2D }) { // pass boundingBox of game object
+		if (box.v1.x < this.cam.TL.x && box.v2.x < this.cam.TL.x) return false;
+		if (box.v1.x > this.cam.TL.x + this.cam.width && box.v2.x > this.cam.TL.x + this.cam.width) return false;
+		if (box.v1.y < this.cam.TL.y && box.v2.y < this.cam.TL.y) return false;
+		if (box.v1.y > this.cam.TL.y + this.cam.width && box.v2.y > this.cam.TL.y + this.cam.width) return false;
 		return true;
 	}
 }

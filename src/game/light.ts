@@ -25,12 +25,12 @@ export class Light {
 	}
 
 
-	isRender(v1: Vector2D, v2: Vector2D) { // pass boundingBox of game object
-		const box = this.boundingBox()
-		if (v1.x < box.v1.x && v2.x < box.v1.x) return false;
-		if (v1.x > box.v2.x && v2.x > box.v2.x) return false;
-		if (v1.y < box.v1.y && v2.y < box.v1.y) return false;
-		if (v1.y > box.v2.y && v2.y > box.v2.y) return false;
+	isRender(box: { v1: Vector2D, v2: Vector2D }) { // pass boundingBox of game object
+		const BOX = this.boundingBox()
+		if (box.v1.x < BOX.v1.x && box.v2.x < BOX.v1.x) return false;
+		if (box.v1.x > BOX.v2.x && box.v2.x > BOX.v2.x) return false;
+		if (box.v1.y < BOX.v1.y && box.v2.y < BOX.v1.y) return false;
+		if (box.v1.y > BOX.v2.y && box.v2.y > BOX.v2.y) return false;
 		return true;
 	}
 
