@@ -1,4 +1,3 @@
-import { gameObjects } from "../init";
 import { GameObject} from "../GameObject";
 import type { Color, Polygon, Vector2D } from "../types";
 
@@ -15,6 +14,6 @@ export function drawRandomPolygon(center: Vector2D, numPoints: number, maxRadius
 		});
 	}
 
-	gameObjects.push(new GameObject(1, pts, color));
+	return new GameObject(1, pts, color)
 }
 
