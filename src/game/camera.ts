@@ -8,10 +8,23 @@ type CAMERA = { TL: Vector2D, width: number, height: number };
 
 export class Camera {
 	private cam: CAMERA;
+	private _lastSW = 0;
+	private _lastSH = 0;
+	private _scaleX = 1;
+	private _scaleY = 1;
+
 	constructor(cam: CAMERA) {
 		this.cam = cam;
 	}
 
+	private _ensureScale(screenW: number, screenH: number) {
+		if (screenW !== this._lastSW || screenH !== this._lastSH) {
+			this._lastSW = screenW;
+			this._lastSH = screenH;
+			this._scaleX = screenW / this.cam.width;
+			this._scaleY = screenH / this.cam.height;
+		}
+	}
 
 	moveCamera(vect: Vector2D) {
 		this.cam.TL = addVectors(this.cam.TL, vect);
@@ -26,26 +39,16 @@ export class Camera {
 	}
 
 	world2screen(v: Vector2D, screenW: number, screenH: number): Vector2D {
-		const scaleX = screenW / this.cam.width;
-		const scaleY = screenH / this.cam.height;
-
-		// convert world -> camera space
+		this._ensureScale(screenW, screenH);
 		const cx = v.x - this.cam.TL.x;
 		const cy = v.y - this.cam.TL.y;
-
-		// camera space -> screen space
-		return { x: cx * scaleX, y: cy * scaleY }
+		return { x: cx * this._scaleX, y: cy * this._scaleY }
 	}
 
 	screen2world(v: Vector2D, screenW: number, screenH: number): Vector2D {
-		const scaleX = screenW / this.cam.width;
-		const scaleY = screenH / this.cam.height;
-
-		// screen space -> camera space
-		const cx = v.x / scaleX;
-		const cy = v.y / scaleY;
-
-		// camera space -> world space
+		this._ensureScale(screenW, screenH);
+		const cx = v.x / this._scaleX;
+		const cy = v.y / this._scaleY;
 		return { x: cx + this.cam.TL.x, y: cy + this.cam.TL.y };
 	}
 
