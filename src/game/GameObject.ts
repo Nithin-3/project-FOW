@@ -90,16 +90,24 @@ export class GameObject extends Entity {
 
 	}
 
-	localPoints(origin: Vector2D) {
+	localPoints(origin: Vector2D, end: Vector2D) {
+		const box = this._boundingBox;
+
+		const scaleX = (end.x - origin.x) / (box.v2.x - box.v1.x);
+		const scaleY = (end.y - origin.y) / (box.v2.y - box.v1.y);
+
 		return this.points.map(p => ({
-			x: origin.x + (p.x - this._boundingBox.v1.x),
-			y: origin.y + (p.y - this._boundingBox.v1.y)
+			x: origin.x + (p.x - box.v1.x) * scaleX,
+			y: origin.y + (p.y - box.v1.y) * scaleY,
 		}));
 	}
 
-	render(ctx: CanvasRenderingContext2D, origin: Vector2D): Polygon {
-		ctx.drawImage(this.texture, origin.x, origin.y);
-		return this.localPoints(origin);
+	render(ctx: CanvasRenderingContext2D, origin: Vector2D, end: Vector2D): Polygon {
+		const width = end.x - origin.x;
+		const height = end.y - origin.y;
+		ctx.drawImage(this.texture, origin.x, origin.y, width, height);
+
+		return this.localPoints(origin, end);
 	}
 
 	convexHull(): Polygon {
