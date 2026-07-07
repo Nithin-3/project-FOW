@@ -71,10 +71,10 @@ export class Quad {
 		}
 
 
-		this.Iquad = new Quad({ v1: { x: this.mid.x, y: this.mid.y }, v2: this.boundingBox.v2 }, this.cellW, this.cellH);
-		this.IIquad = new Quad({ v1: { x: this.boundingBox.v1.x, y: this.mid.y }, v2: { x: this.mid.x, y: this.boundingBox.v2.y } }, this.cellW, this.cellH);
-		this.IIIquad = new Quad({ v1: this.boundingBox.v1, v2: { x: this.mid.x, y: this.mid.y } }, this.cellW, this.cellH);
-		this.IVquad = new Quad({ v1: { x: this.mid.x, y: this.boundingBox.v1.y }, v2: { x: this.boundingBox.v2.x, y: this.mid.y } }, this.cellW, this.cellH);
+		this.Iquad = new Quad({ v1: { x: this.mid.x, y: this.mid.y }, v2: this.boundingBox.v2 }, this.cellW, this.cellH, this.cap);
+		this.IIquad = new Quad({ v1: { x: this.boundingBox.v1.x, y: this.mid.y }, v2: { x: this.mid.x, y: this.boundingBox.v2.y } }, this.cellW, this.cellH, this.cap);
+		this.IIIquad = new Quad({ v1: this.boundingBox.v1, v2: { x: this.mid.x, y: this.mid.y } }, this.cellW, this.cellH, this.cap);
+		this.IVquad = new Quad({ v1: { x: this.mid.x, y: this.boundingBox.v1.y }, v2: { x: this.boundingBox.v2.x, y: this.mid.y } }, this.cellW, this.cellH, this.cap);
 
 		for (const p of this.points) this.insert(p);
 		if (this.points.length) this.points = [];
@@ -115,18 +115,18 @@ export class Quad {
 		this.IVquad = null;
 	}
 
-	drawDebug(ctx: CanvasRenderingContext2D, color: string, cam: (box: { v1: Vector2D, v2: Vector2D }) => { v1: Vector2D, v2: Vector2D }) {
-		const { v1, v2 } = cam(this.boundingBox)
+	drawDebug(ctx: CanvasRenderingContext2D, color: string, transform: (box: { v1: Vector2D, v2: Vector2D }) => { v1: Vector2D, v2: Vector2D }, depth = 0) {
+		const { v1, v2 } = transform(this.boundingBox)
 		ctx.beginPath();
 		ctx.rect(v1.x, v1.y, v2.x - v1.x, v2.y - v1.y);
 		ctx.strokeStyle = color;
 		ctx.lineWidth = 2;
 		ctx.stroke();
-		const childColor = `#${Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0')}`
-		this.Iquad?.drawDebug(ctx, childColor, cam);
-		this.IIquad?.drawDebug(ctx, childColor, cam);
-		this.IIIquad?.drawDebug(ctx, childColor, cam);
-		this.IVquad?.drawDebug(ctx, childColor, cam);
+		const childColor = `hsl(${(depth + 1) * 60 % 360}, 100%, 50%)`
+		this.Iquad?.drawDebug(ctx, childColor, transform, depth + 1);
+		this.IIquad?.drawDebug(ctx, childColor, transform, depth + 1);
+		this.IIIquad?.drawDebug(ctx, childColor, transform, depth + 1);
+		this.IVquad?.drawDebug(ctx, childColor, transform, depth + 1);
 	}
 }
 
