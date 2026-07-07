@@ -127,7 +127,9 @@ let lasttime = performance.now();
 const { width, height } = world;
 // worldCtx.clearRect(0, 0, width, height);
 quad.getBB(cam.boundingBox()).forEach(o => {
-	Entity.isRender(o.boundingBox(), cam.boundingBox()) && o.render(worldCtx, cam.world2screen(o.boundingBox().v1, width, height))
+	const v1 = cam.world2screen(o.boundingBox().v1, width, height)
+	const v2 = cam.world2screen(o.boundingBox().v2, width, height)
+	Entity.isRender(o.boundingBox(), cam.boundingBox()) && o.render(worldCtx, v1, v2)
 });
 
 let acc = 0;
@@ -152,12 +154,10 @@ function gameloop() {
 		worldCtx.clearRect(0, 0, width, height);
 		quad.getBB(cam.boundingBox()).forEach(o => {
 			const v1 = cam.world2screen(o.boundingBox().v1, width, height)
-			const v2 = addVectors(v1, subtractVectors(o.boundingBox().v2, o.boundingBox().v1));
-			const c1 = cam.world2screen(cam.boundingBox().v1, width, height)
-			const c2 = addVectors(v1, subtractVectors(cam.boundingBox().v2, cam.boundingBox().v1));
-			if (Entity.isRender({ v1, v2 }, { v1: c1, v2: c2 })) {
+			const v2 = cam.world2screen(o.boundingBox().v2, width, height)
+			if (Entity.isRender(o.boundingBox(), cam.boundingBox())) {
 				totPolyCam++;
-				totpolycamPnt += o.render(worldCtx, v1).length
+				totpolycamPnt += o.render(worldCtx, v1, v2).length
 
 
 				// NOTE: debug border 
@@ -181,20 +181,19 @@ function gameloop() {
 		const box = v.boundingBox()
 		if (!Entity.isRender(box, cam.boundingBox())) return;
 		const lightView = quad.getBB(box);
-		const screenPos = cam.world2screen(v.loc, width, height);
 		const visiblePolys: Polygon[] = []
 		const l1 = cam.world2screen(v.boundingBox().v1, width, height)
-		const l2 = addVectors(l1, subtractVectors(v.boundingBox().v2, v.boundingBox().v1));
+		const l2 = cam.world2screen(v.boundingBox().v2, width, height)
 		const lwidth = (l2.x - l1.x) / 2;
 		const lheight = (l2.y - l1.y) / 2;
+		const screenPos = { x: l1.x + lwidth, y: l1.y + lheight };
 		for (const o of lightView) {
 			const v1 = cam.world2screen(o.boundingBox().v1, width, height)
-			const v2 = addVectors(v1, subtractVectors(o.boundingBox().v2, o.boundingBox().v1));
+			const v2 = cam.world2screen(o.boundingBox().v2, width, height)
 			if (!Entity.isRender({ v1, v2 }, { v1: l1, v2: l2 })) continue;
-			const pointLocal = cam.world2screen(o.boundingBox().v1, width, height)
-			visiblePolys.push(o.localPoints(pointLocal))
+			visiblePolys.push(o.localPoints(v1, v2))
 			// NOTE: debug line
-			const center = vectorLerp(pointLocal, v2, 0.5)
+			const center = vectorLerp(v1, v2, 0.5)
 
 			fogCtx.beginPath();
 			fogCtx.lineWidth = 1
