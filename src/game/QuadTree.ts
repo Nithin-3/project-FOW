@@ -114,5 +114,19 @@ export class Quad {
 		this.IIIquad = null;
 		this.IVquad = null;
 	}
+
+	drawDebug(ctx: CanvasRenderingContext2D, color: string, cam: (box: { v1: Vector2D, v2: Vector2D }) => { v1: Vector2D, v2: Vector2D }) {
+		const { v1, v2 } = cam(this.boundingBox)
+		ctx.beginPath();
+		ctx.rect(v1.x, v1.y, v2.x - v1.x, v2.y - v1.y);
+		ctx.strokeStyle = color;
+		ctx.lineWidth = 2;
+		ctx.stroke();
+		const childColor = `#${Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0')}`
+		this.Iquad?.drawDebug(ctx, childColor, cam);
+		this.IIquad?.drawDebug(ctx, childColor, cam);
+		this.IIIquad?.drawDebug(ctx, childColor, cam);
+		this.IVquad?.drawDebug(ctx, childColor, cam);
+	}
 }
 

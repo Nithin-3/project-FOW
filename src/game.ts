@@ -54,8 +54,8 @@ window.addEventListener('resize', resizeCanvas);
 const quad = new Quad({ v1: { x: -2000, y: -2000 }, v2: { x: 2000, y: 2000 } }, 100, 100, 10)
 const cam = new Camera({ TL: { x: 10, y: -50 }, width: 960, height: 540 })
 for (let i = 0; i < 300; i++) {
-	const x = Math.random() * window.innerWidth * 2.9;
-	const y = Math.random() * window.innerHeight * 2.9;
+	const x = Math.random() * 4000 - 2000;
+	const y = Math.random() * 4000 - 2000;
 	const points = 3 + Math.floor(Math.random() * 14);
 	const radius = 50 + Math.random() * 170;
 	quad.insert(drawRandomPolygon({ x, y }, points, radius));
@@ -171,6 +171,11 @@ function gameloop() {
 				// worldCtx.rect(v1.x, v1.y, v2.x - v1.x, v2.y - v1.y);
 				worldCtx.strokeStyle = o.color
 				worldCtx.stroke()
+
+				quad.drawDebug(worldCtx, `#${Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0')}`, (box) => {
+					const { v1, v2 } = box;
+					return { v1: cam.world2screen(v1, width, height), v2: cam.world2screen(v2, width, height) }
+				})
 			}
 		});
 	}
