@@ -1,7 +1,7 @@
 import { GameObject} from "../GameObject";
 import type { Color, Polygon, Vector2D } from "../types";
 
-export function drawRandomPolygon(center: Vector2D, numPoints: number, maxRadius: number, color: Color = "#fff" as Color) {
+export function drawRandomPolygon(center: Vector2D, numPoints: number, maxRadius: number, color: Color = `#${Math.floor(Math.random()*16777215).toString(16).padStart(6,'0')}` as Color) {
 	const angleStep = (Math.PI * 2) / numPoints;
 	const pts: Polygon = [];
 

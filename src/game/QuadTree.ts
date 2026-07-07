@@ -55,7 +55,7 @@ export class Quad {
 	insert(obj: GameObject) {
 
 		if (this.Iquad !== null) {
-			const objBox = obj.boundingBox;
+			const objBox = obj.boundingBox();
 
 			if (this.Iquad.contains(objBox)) this.Iquad.insert(obj);
 			if (this.IIquad!.contains(objBox)) this.IIquad!.insert(obj);

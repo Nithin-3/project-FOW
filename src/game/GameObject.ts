@@ -1,5 +1,5 @@
 import type { Vector2D, Polygon, Color } from "./types";
-import { Uid } from "./uid";
+import { Entity } from "./Entity";
 import { cross } from "./utils";
 
 export function vectorEquals(a: Vector2D, b: Vector2D): boolean {
@@ -38,17 +38,16 @@ export type GameObjectData = {
 		v2: Vector2D;
 	};
 };
-export class GameObject {
+export class GameObject extends Entity {
 	zIndex: number;
 	readonly points: Polygon;
-	readonly id:number;
 	color: Color;
 	collision: boolean;
 	texture: HTMLCanvasElement;
 	door?: Polygon;
-	private _boundingBox: { v1: Vector2D; v2: Vector2D; } = { v1: { x: Infinity, y: Infinity }, v2: { x: -Infinity, y: -Infinity } };
 	constructor(zIndex: number, points: Polygon, color: Color, doors?: Vector2D[]) {
-		this.id = Uid.next().value!
+		super()
+		this._boundingBox = { v1: { x: Infinity, y: Infinity }, v2: { x: -Infinity, y: -Infinity } };
 		this.zIndex = zIndex;
 		this.points = points;
 		this.color = asColor(color);
@@ -89,10 +88,6 @@ export class GameObject {
 		ctx.fill();
 
 
-	}
-
-	get boundingBox(): { v1: Vector2D; v2: Vector2D; } {
-		return this._boundingBox;
 	}
 
 	localPoints(origin: Vector2D) {

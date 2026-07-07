@@ -1,12 +1,11 @@
 import type { Vector2D } from "./types";
+import { Entity } from "./Entity";
 import { addVectors } from "./utils";
 
 type CAMERA = { TL: Vector2D, width: number, height: number };
-// TL-> top left 
-// boundingBox TL <=> TL+{width,height}
 
 
-export class Camera {
+export class Camera extends Entity {
 	private cam: CAMERA;
 	private _lastSW = 0;
 	private _lastSH = 0;
@@ -14,7 +13,16 @@ export class Camera {
 	private _scaleY = 1;
 
 	constructor(cam: CAMERA) {
+		super()
 		this.cam = cam;
+		this._updateBounds();
+	}
+
+	private _updateBounds() {
+		this._boundingBox = {
+			v1: { ...this.cam.TL },
+			v2: { x: this.cam.TL.x + this.cam.width, y: this.cam.TL.y + this.cam.height }
+		};
 	}
 
 	private _ensureScale(screenW: number, screenH: number) {
@@ -28,14 +36,18 @@ export class Camera {
 
 	moveCamera(vect: Vector2D) {
 		this.cam.TL = addVectors(this.cam.TL, vect);
+		this._updateBounds();
 	}
 
 	updateCamera(vect: Vector2D, center: boolean = false) {
 		this.cam.TL = center ? { x: vect.x - (this.cam.width * 0.5), y: vect.y - (this.cam.height * 0.5) } : vect;
+		this._updateBounds();
 	}
 
-	boundingBox(): { v1: Vector2D, v2: Vector2D } {
-		return { v1: this.cam.TL, v2: { x: this.cam.TL.x + this.cam.width, y: this.cam.TL.y + this.cam.height } }
+	updateSize(width: number, height: number) {
+		this.cam.width = width;
+		this.cam.height = height;
+		this._updateBounds();
 	}
 
 	world2screen(v: Vector2D, screenW: number, screenH: number): Vector2D {
@@ -52,13 +64,6 @@ export class Camera {
 		return { x: cx + this.cam.TL.x, y: cy + this.cam.TL.y };
 	}
 
-	isRender(box:{ v1: Vector2D, v2: Vector2D }) { // pass boundingBox of game object
-		if (box.v1.x < this.cam.TL.x && box.v2.x < this.cam.TL.x) return false;
-		if (box.v1.x > this.cam.TL.x + this.cam.width && box.v2.x > this.cam.TL.x + this.cam.width) return false;
-		if (box.v1.y < this.cam.TL.y && box.v2.y < this.cam.TL.y) return false;
-		if (box.v1.y > this.cam.TL.y + this.cam.width && box.v2.y > this.cam.TL.y + this.cam.width) return false;
-		return true;
-	}
 }
 
 
