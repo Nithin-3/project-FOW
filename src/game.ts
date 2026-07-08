@@ -1,6 +1,7 @@
 import { cam, hud, hudCtx, staticQuad, world, worldCtx, edge } from "./game/init";
+import { player } from "./game/player";
 import type { Vector2D } from "./game/types";
-import { addVectors, multiplyVector, normalizeVector, subtractVectors, vectorLerp } from "./game/utils";
+import { multiplyVector, normalizeVector, subtractVectors, } from "./game/utils";
 
 
 let moveCam: Vector2D = { x: 0, y: 0 };
@@ -29,6 +30,17 @@ document.addEventListener("keyup", (event) => {
 			break;
 	}
 });
+
+
+hud.addEventListener("click", (e) => {
+	const x = e.offsetX;
+	const y = e.offsetY;
+	const loc = cam.screen2world({ x, y })
+	const pl = new player(loc)
+	const v1 = cam.world2screen(pl.boundingBox().v1)
+	const v2 = cam.world2screen(pl.boundingBox().v2)
+	pl.render(worldCtx, v1, v2)
+})
 
 hud.onmousemove = (e) => {
 	const x = e.offsetX;
@@ -81,9 +93,6 @@ function gameloop() {
 		cam.moveCamera(multiplyVector(moveCam, dt));
 		worldCtx.clearRect(0, 0, width, height);
 		worldCtx.drawImage(cam.texture, 0, 0, width, height)
-		staticQuad.drawDebug(worldCtx, ({ v1, v2 }) => {
-			return { v1: cam.world2screen(v1), v2: cam.world2screen(v2) }
-		})
 	}
 
 

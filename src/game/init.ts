@@ -1,6 +1,5 @@
 import { Camera } from "./camera";
 import type { GameObject } from "./GameObject";
-import { player } from "./player";
 import { Quad } from "./QuadTree";
 import { drawRandomPolygon } from "./shape/draw";
 
@@ -12,7 +11,7 @@ export const worldCtx = world.getContext('2d')!;
 export const fogCtx = fog.getContext('2d')!;
 export const hudCtx = hud.getContext('2d')!;
 
-const cameraWidth = 950
+const cameraWidth = 900
 type WorldSize = {
 	v1: { x: number; y: number };
 	v2: { x: number; y: number };
@@ -47,7 +46,7 @@ function resizeCanvas() {
 }
 
 
-export const staticQuad = new Quad<GameObject>({ v1: { x: -2000, y: -2000 }, v2: { x: 2000, y: 2000 } }, 30)
+export const staticQuad = new Quad<GameObject>({ v1: { x: -2000, y: -2000 }, v2: { x: 2000, y: 2000 } }, 10)
 export const cam = new Camera({ TL: { x: -2000, y: -2000 }, width: cameraWidth, height: getHeight(cameraWidth) })
 for (let i = 0; i < 600; i++) {
 	const x = Math.random() * 3800 - 1900;
@@ -58,17 +57,6 @@ for (let i = 0; i < 600; i++) {
 }
 resizeCanvas();
 window.addEventListener('resize', resizeCanvas);
-
-
-console.log(world);
-
-
-world.addEventListener("click", (e) => {
-	const loc = cam.screen2world({ x: e.clientX, y: e.clientY })
-	const pl = new player(loc)
-	pl.render(worldCtx, loc, cam.world2screen(pl.boundingBox().v2))
-
-})
 
 type WorldInfo = {
 	width: number;
@@ -98,4 +86,11 @@ ctx.rect(worldSize.v1.x, worldSize.v1.y, info.width, info.height)
 ctx.strokeStyle = "#663399"
 ctx.stroke()
 
-staticQuad.getAll().forEach(o => o.render(ctx, o.boundingBox().v1, o.boundingBox().v2))
+for (const o of staticQuad.getAll()) {
+
+	o.render(ctx, o.boundingBox().v1, o.boundingBox().v2)
+}
+
+staticQuad.drawDebug(ctx, ({ v1, v2 }) => {
+	return { v1, v2}
+})
