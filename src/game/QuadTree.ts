@@ -115,7 +115,7 @@ export class Quad<T extends { boundingBox: () => { v1: Vector2D, v2: Vector2D } 
 		this.IVquad = null;
 	}
 
-	drawDebug(ctx: CanvasRenderingContext2D, transform: (box: { v1: Vector2D, v2: Vector2D }) => { v1: Vector2D, v2: Vector2D }, depth = 0) {
+	drawDebug(ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D, transform: (box: { v1: Vector2D, v2: Vector2D }) => { v1: Vector2D, v2: Vector2D }, depth = 0) {
 		const color = `hsl(${(depth + 1) * 60 % 360}, 100%, 50%)`
 		const { v1, v2 } = transform(this.boundingBox)
 		ctx.beginPath();
