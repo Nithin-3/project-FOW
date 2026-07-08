@@ -7,15 +7,21 @@ type CAMERA = { TL: Vector2D, width: number, height: number };
 
 export class Camera extends Entity {
 	private cam: CAMERA;
-	private _lastSW = 0;
-	private _lastSH = 0;
+	private SW = 0;
+	private SH = 0;
 	private _scaleX = 1;
 	private _scaleY = 1;
+
+	texture: OffscreenCanvas;
+	ctx: OffscreenCanvasRenderingContext2D;
+
 
 	constructor(cam: CAMERA) {
 		super()
 		this.cam = cam;
 		this._updateBounds();
+		this.texture = new OffscreenCanvas(cam.width, cam.height);
+		this.ctx = this.texture.getContext('2d')!;
 	}
 
 	private _updateBounds() {
@@ -26,12 +32,16 @@ export class Camera extends Entity {
 	}
 
 	private _ensureScale(screenW: number, screenH: number) {
-		if (screenW !== this._lastSW || screenH !== this._lastSH) {
-			this._lastSW = screenW;
-			this._lastSH = screenH;
+		if (screenW !== this.SW || screenH !== this.SH) {
+			this.SW = screenW;
+			this.SH = screenH;
 			this._scaleX = screenW / this.cam.width;
 			this._scaleY = screenH / this.cam.height;
 		}
+	}
+
+	worldSize(screenW: number, screenH: number) {
+		this._ensureScale(screenW, screenH)
 	}
 
 	moveCamera(vect: Vector2D) {
@@ -47,6 +57,8 @@ export class Camera extends Entity {
 	updateSize(width: number, height: number) {
 		this.cam.width = width;
 		this.cam.height = height;
+		this.texture.width = width;
+		this.texture.height = height;
 		this._updateBounds();
 	}
 

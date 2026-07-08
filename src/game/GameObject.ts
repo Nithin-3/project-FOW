@@ -31,7 +31,7 @@ export type GameObjectData = {
 	points: Polygon;
 	color: Color;
 	collision: boolean;
-	texture: HTMLCanvasElement;
+	texture: OffscreenCanvas;
 	door?: Polygon;
 	boundingBox: {
 		v1: Vector2D;
@@ -43,7 +43,7 @@ export class GameObject extends Entity {
 	readonly points: Polygon;
 	color: Color;
 	collision: boolean;
-	texture: HTMLCanvasElement;
+	texture: OffscreenCanvas;
 	door?: Polygon;
 	constructor(zIndex: number, points: Polygon, color: Color, doors?: Vector2D[]) {
 		super()
@@ -73,9 +73,7 @@ export class GameObject extends Entity {
 
 		const width = Math.ceil(this._boundingBox.v2.x - this._boundingBox.v1.x);
 		const height = Math.ceil(this._boundingBox.v2.y - this._boundingBox.v1.y);
-		this.texture = document.createElement("canvas");
-		this.texture.width = width;
-		this.texture.height = height;
+		this.texture = new OffscreenCanvas(width, height);
 		const ctx = this.texture.getContext("2d")!;
 
 		ctx.beginPath();
@@ -102,7 +100,7 @@ export class GameObject extends Entity {
 		}));
 	}
 
-	render(ctx: CanvasRenderingContext2D, origin: Vector2D, end: Vector2D){
+	render(ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D, origin: Vector2D, end: Vector2D) {
 		const width = end.x - origin.x;
 		const height = end.y - origin.y;
 		ctx.drawImage(this.texture, origin.x, origin.y, width, height);
