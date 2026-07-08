@@ -1,6 +1,6 @@
 import type { Vector2D } from "./types";
 import { Entity } from "./Entity";
-import { addVectors } from "./utils";
+import { addVectors, vectorLerp } from "./utils";
 import { staticTexture } from "./init";
 
 type CAMERA = { TL: Vector2D, width: number, height: number };
@@ -46,7 +46,7 @@ export class Camera extends Entity {
 	}
 
 	moveCamera(vect: Vector2D) {
-		this.cam.TL = addVectors(this.cam.TL, vect);
+		this.cam.TL = vectorLerp(this.cam.TL, addVectors(this.cam.TL, vect), 0.1);
 		this._updateBounds();
 		this.render()
 	}

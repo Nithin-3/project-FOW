@@ -1,22 +1,18 @@
-import { cam, hudCtx, staticQuad, world, worldCtx } from "./game/init";
+import { cam, hud, hudCtx, staticQuad, world, worldCtx, edge } from "./game/init";
 import type { Vector2D } from "./game/types";
-import { addVectors, multiplyVector, vectorLerp } from "./game/utils";
+import { addVectors, multiplyVector, normalizeVector, subtractVectors, vectorLerp } from "./game/utils";
 
 
-const moveCam: Vector2D = { x: 0, y: 0 };
+let moveCam: Vector2D = { x: 0, y: 0 };
 document.addEventListener("keydown", (event) => {
 	switch (event.key) {
 		case "h":
-			moveCam.x = -1;
 			break;
 		case "j":
-			moveCam.y = 1;
 			break;
 		case "k":
-			moveCam.y = -1;
 			break;
 		case "l":
-			moveCam.x = 1;
 			break;
 	}
 });
@@ -24,20 +20,41 @@ document.addEventListener("keydown", (event) => {
 document.addEventListener("keyup", (event) => {
 	switch (event.key) {
 		case "h":
-			moveCam.x = 0;
 			break;
 		case "j":
-			moveCam.y = 0;
 			break;
 		case "k":
-			moveCam.y = 0;
 			break;
 		case "l":
-			moveCam.x = 0;
 			break;
 	}
 });
 
+hud.onmousemove = (e) => {
+	const x = e.offsetX;
+	const y = e.offsetY;
+
+	hudCtx.beginPath();
+	hudCtx.arc(x, y, 3, 0, Math.PI * 2);
+	hudCtx.strokeStyle = "red";
+	hudCtx.lineWidth = 3;
+	hudCtx.stroke();
+
+
+	if (x <= edge || x >= hud.width - edge || y <= edge || y >= hud.height - edge) {
+		moveCam = normalizeVector(subtractVectors(
+			{ x, y },
+			{ x: hud.width / 2, y: hud.height / 2 }
+		));
+
+		hudCtx.beginPath();
+		hudCtx.arc(x, y, 6, 0, Math.PI * 2);
+		hudCtx.fillStyle = "green";
+		hudCtx.fill();
+	} else {
+		moveCam = { x: 0, y: 0 };
+	}
+};
 function drawDebug(ctx: CanvasRenderingContext2D, items: Record<string, string | number>, x = 10, y = 10, lineH = 10) {
 	ctx.font = "10px sans-serif"
 	ctx.fillStyle = "rgb(25,255,255)"
@@ -61,11 +78,7 @@ function gameloop() {
 	const { width, height } = world;
 
 	if (moveCam.x !== 0 || moveCam.y !== 0) {
-		totPolyCam = 0;
-		totpolyLigPnt = 0;
-		const camS = cam.boundingBox().v1;
-		const to = addVectors(camS, multiplyVector(moveCam, 1.5 * dt))
-		cam.updateCamera(vectorLerp(camS, to, 0.1))
+		cam.moveCamera(multiplyVector(moveCam, dt));
 		worldCtx.clearRect(0, 0, width, height);
 		worldCtx.drawImage(cam.texture, 0, 0, width, height)
 		staticQuad.drawDebug(worldCtx, ({ v1, v2 }) => {

@@ -6,13 +6,13 @@ import { drawRandomPolygon } from "./shape/draw";
 
 
 const fog = document.getElementById('fog') as HTMLCanvasElement;
-const hud = document.getElementById('HUD') as HTMLCanvasElement;
-export const world = document.getElementById('world') as HTMLCanvasElement;
+export const hud = document.getElementById('HUD') as HTMLCanvasElement;
+export const world = document.querySelector<HTMLCanvasElement>("#world")!;
 export const worldCtx = world.getContext('2d')!;
 export const fogCtx = fog.getContext('2d')!;
 export const hudCtx = hud.getContext('2d')!;
 
-const cameraWidth = 4000
+const cameraWidth = 950
 type WorldSize = {
 	v1: { x: number; y: number };
 	v2: { x: number; y: number };
@@ -34,11 +34,15 @@ function getHeight(width: number): number {
 	return width / aspectRatio;
 }
 
+export let edge: number = 0;
 function resizeCanvas() {
+	hud.width = window.innerWidth;
+	hud.height = window.innerHeight;
 	fog.width = window.innerWidth;
 	fog.height = window.innerHeight;
 	world.width = window.innerWidth;
 	world.height = window.innerHeight;
+	edge = Math.min(window.innerWidth, window.innerHeight) * 0.1
 	cam.worldSize(window.innerWidth, window.innerHeight)
 }
 
@@ -54,6 +58,9 @@ for (let i = 0; i < 600; i++) {
 }
 resizeCanvas();
 window.addEventListener('resize', resizeCanvas);
+
+
+console.log(world);
 
 
 world.addEventListener("click", (e) => {
@@ -87,8 +94,8 @@ const ctx = staticTexture.getContext("2d")!;
 ctx.translate(info.offsetX, info.offsetY);
 
 ctx.lineWidth = 20
-ctx.rect(worldSize.v1.x,worldSize.v1.y,info.width,info.height)
-ctx.strokeStyle = "rgb(128, 0, 128)"
+ctx.rect(worldSize.v1.x, worldSize.v1.y, info.width, info.height)
+ctx.strokeStyle = "#663399"
 ctx.stroke()
 
 staticQuad.getAll().forEach(o => o.render(ctx, o.boundingBox().v1, o.boundingBox().v2))
