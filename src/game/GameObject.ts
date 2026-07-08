@@ -102,12 +102,10 @@ export class GameObject extends Entity {
 		}));
 	}
 
-	render(ctx: CanvasRenderingContext2D, origin: Vector2D, end: Vector2D): Polygon {
+	render(ctx: CanvasRenderingContext2D, origin: Vector2D, end: Vector2D){
 		const width = end.x - origin.x;
 		const height = end.y - origin.y;
 		ctx.drawImage(this.texture, origin.x, origin.y, width, height);
-
-		return this.localPoints(origin, end);
 	}
 
 	convexHull(): Polygon {

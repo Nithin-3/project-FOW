@@ -53,8 +53,8 @@ function resizeCanvas() {
 window.addEventListener('resize', resizeCanvas);
 
 function getHeight(width: number): number {
-    const aspectRatio = window.innerWidth / window.innerHeight;
-    return width / aspectRatio;
+	const aspectRatio = window.innerWidth / window.innerHeight;
+	return width / aspectRatio;
 }
 
 const quad = new Quad({ v1: { x: -2000, y: -2000 }, v2: { x: 2000, y: 2000 } }, 100, 100, 30)
@@ -139,7 +139,7 @@ quad.getBB(cam.boundingBox()).forEach(o => {
 });
 
 let acc = 0;
-let totPolyCam = 0, totpolycamPnt = 0;
+let totPolyCam = 0, totpolyLigPnt = 0;
 function gameloop() {
 	const now = performance.now()
 	const dt = now - lasttime
@@ -148,12 +148,9 @@ function gameloop() {
 
 	const { width, height } = world;
 
-	fogCtx.clearRect(0, 0, width, height);
-	fogCtx.fillStyle = "rgba(0,0,0,0.8)";
-	fogCtx.fillRect(0, 0, width, height);
 	if (moveCam.x !== 0 || moveCam.y !== 0) {
 		totPolyCam = 0;
-		totpolycamPnt = 0;
+		totpolyLigPnt = 0;
 		const camS = cam.boundingBox().v1;
 		const to = addVectors(camS, multiplyVector(moveCam, 1.5 * dt))
 		cam.updateCamera(vectorLerp(camS, to, 0.1))
@@ -163,30 +160,27 @@ function gameloop() {
 			const v2 = cam.world2screen(o.boundingBox().v2, width, height)
 			if (Entity.isRender(o.boundingBox(), cam.boundingBox())) {
 				totPolyCam++;
-				totpolycamPnt += o.render(worldCtx, v1, v2).length
+				o.render(worldCtx, v1, v2)
 
 
 				// NOTE: debug border 
 				worldCtx.beginPath()
 				worldCtx.lineWidth = 1;
-				// worldCtx.moveTo(v1.x, v1.y);
-				// worldCtx.lineTo(v2.x, v1.y);
-				// worldCtx.lineTo(v2.x, v2.y);
-				// worldCtx.lineTo(v1.x, v2.y);
-				// worldCtx.closePath();
 				worldCtx.rect(v1.x, v1.y, v2.x - v1.x, v2.y - v1.y);
 				worldCtx.strokeStyle = o.color
 				worldCtx.stroke()
 
-				quad.drawDebug(worldCtx, "red", (box) => {
-					const { v1, v2 } = box;
-					return { v1: cam.world2screen(v1, width, height), v2: cam.world2screen(v2, width, height) }
-				})
 			}
 		});
+		quad.drawDebug(worldCtx, "red", ({ v1, v2 }) => {
+			return { v1: cam.world2screen(v1, width, height), v2: cam.world2screen(v2, width, height) }
+		})
 	}
 
 
+	fogCtx.clearRect(0, 0, width, height);
+	fogCtx.fillStyle = "rgba(0,0,0,0.8)";
+	fogCtx.fillRect(0, 0, width, height);
 	const localLight: { inst: Light; l: { x: number, y: number, r: number }; poly: Polygon[] }[] = []
 	lights.forEach(v => {
 		const box = v.boundingBox()
@@ -202,7 +196,9 @@ function gameloop() {
 			const v1 = cam.world2screen(o.boundingBox().v1, width, height)
 			const v2 = cam.world2screen(o.boundingBox().v2, width, height)
 			if (!Entity.isRender({ v1, v2 }, { v1: l1, v2: l2 })) continue;
-			visiblePolys.push(o.localPoints(v1, v2))
+			const localPoints = o.localPoints(v1, v2)
+			visiblePolys.push(localPoints)
+			totpolyLigPnt += localPoints.length
 			// NOTE: debug line
 			const center = vectorLerp(v1, v2, 0.5)
 
@@ -213,18 +209,11 @@ function gameloop() {
 			fogCtx.strokeStyle = "red"
 			fogCtx.stroke()
 		}
-		// TODO:
-		// dont scale radius -> read boundingBox on screen set smallest size or draw elips
 		localLight.push({ inst: v, l: { x: l1.x + lwidth, y: l1.y + lheight, r: lheight < lwidth ? lheight : lwidth }, poly: visiblePolys });
 		// NOTE: debug border 
 		fogCtx.beginPath()
 		fogCtx.lineWidth = 1;
-		fogCtx.moveTo(l1.x, l1.y);
-		fogCtx.lineTo(l2.x, l1.y);
-		fogCtx.lineTo(l2.x, l2.y);
-		fogCtx.lineTo(l1.x, l2.y);
-		fogCtx.closePath();
-		// fogrldCtx.rect(v1.x, v1.y, v2.x - v1.x, v2.y - v1.y);
+		fogCtx.rect(l1.x, l1.y, l2.x - l1.x, l2.y - l1.y);
 		fogCtx.strokeStyle = "red"
 		fogCtx.stroke()
 	})
@@ -262,9 +251,8 @@ function gameloop() {
 		drawDebug(hudCtx, {
 			fps: Math.ceil(1000 / dt),
 			'visible Polygon': totPolyCam,
-			'visible Polygon points': totpolycamPnt,
 			'visible lights': localLight.length,
-			'lights polygon': localLight.reduce((sum, row) => sum + row.poly.length, 0),
+			'lights polygon': totpolyLigPnt,
 		})
 	}
 
