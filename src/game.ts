@@ -1,4 +1,4 @@
-import { cam, hud, hudCtx, staticQuad, world, worldCtx, edge } from "./game/init";
+import { cam, hud, hudCtx, world, worldCtx, edge } from "./game/init";
 import { player } from "./game/player";
 import type { Vector2D } from "./game/types";
 import { multiplyVector, normalizeVector, subtractVectors, } from "./game/utils";
@@ -32,15 +32,15 @@ document.addEventListener("keyup", (event) => {
 });
 
 
-hud.addEventListener("click", (e) => {
+hud.onclick = (e) => {
 	const x = e.offsetX;
 	const y = e.offsetY;
 	const loc = cam.screen2world({ x, y })
 	const pl = new player(loc)
 	const v1 = cam.world2screen(pl.boundingBox().v1)
 	const v2 = cam.world2screen(pl.boundingBox().v2)
-	pl.render(worldCtx, v1, v2)
-})
+	pl.render(worldCtx, v1, v2) 
+}
 
 hud.onmousemove = (e) => {
 	const x = e.offsetX;
@@ -67,6 +67,9 @@ hud.onmousemove = (e) => {
 		moveCam = { x: 0, y: 0 };
 	}
 };
+
+hud.onmouseleave = () => moveCam = { x: 0, y: 0 };
+
 function drawDebug(ctx: CanvasRenderingContext2D, items: Record<string, string | number>, x = 10, y = 10, lineH = 10) {
 	ctx.font = "10px sans-serif"
 	ctx.fillStyle = "rgb(25,255,255)"
