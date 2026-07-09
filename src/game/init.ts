@@ -11,13 +11,13 @@ export const worldCtx = world.getContext('2d')!;
 export const fogCtx = fog.getContext('2d')!;
 export const hudCtx = hud.getContext('2d')!;
 
-const cameraWidth = 900
+const cameraWidth = 950
 type WorldSize = {
 	v1: { x: number; y: number };
 	v2: { x: number; y: number };
 };
 
-const worldSize: WorldSize = { v1: { x: -2500, y: -2500 }, v2: { x: 2500, y: 2500 } };
+const worldSize: WorldSize = { v1: { x: -2100, y: -2100 }, v2: { x: 2100, y: 2100 } };
 function getWorldInfo(world: WorldSize) {
 	return {
 		width: world.v2.x - world.v1.x,
@@ -46,11 +46,14 @@ function resizeCanvas() {
 }
 
 
-export const staticQuad = new Quad<GameObject>({ v1: { x: -2000, y: -2000 }, v2: { x: 2000, y: 2000 } }, 10)
+export const staticQuad = new Quad<GameObject>(worldSize, 20)
 export const cam = new Camera({ TL: { x: -2000, y: -2000 }, width: cameraWidth, height: getHeight(cameraWidth) })
-for (let i = 0; i < 600; i++) {
-	const x = Math.random() * 3800 - 1900;
-	const y = Math.random() * 3800 - 1900;
+function random(min: number, max: number) {
+	return Math.random() * (max - min) + min;
+}
+for (let i = 0; i < 300; i++) {
+	const x = random(worldSize.v1.x, worldSize.v2.x);
+	const y = random(worldSize.v1.y, worldSize.v2.y);
 	const points = 3 + Math.floor(Math.random() * 14);
 	const radius = 50 + Math.random() * 170;
 	staticQuad.insert(drawRandomPolygon({ x, y }, points, radius));
@@ -81,16 +84,25 @@ staticTexture.info = info;
 const ctx = staticTexture.getContext("2d")!;
 ctx.translate(info.offsetX, info.offsetY);
 
+for (const o of staticQuad.getAll()) {
+
+	const { v1, v2 } = o.boundingBox()
+	o.render(ctx, v1, v2)
+
+	// ctx.beginPath()
+	// ctx.lineWidth = 1
+	// ctx.rect(v1.x, v1.y, v2.x - v1.x, v2.y - v1.y);
+	// ctx.strokeStyle = o.fill as any
+	// ctx.stroke()
+}
+
+staticQuad.drawDebug(ctx, ({ v1, v2 }) => {
+	return { v1, v2 }
+})
+
+ctx.beginPath()
 ctx.lineWidth = 20
 ctx.rect(worldSize.v1.x, worldSize.v1.y, info.width, info.height)
 ctx.strokeStyle = "#663399"
 ctx.stroke()
 
-for (const o of staticQuad.getAll()) {
-
-	o.render(ctx, o.boundingBox().v1, o.boundingBox().v2)
-}
-
-staticQuad.drawDebug(ctx, ({ v1, v2 }) => {
-	return { v1, v2}
-})
