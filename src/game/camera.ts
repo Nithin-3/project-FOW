@@ -68,23 +68,9 @@ export class Camera extends Entity {
 
 	private render() {
 		this.ctx.clearRect(0, 0, this.texture.width, this.texture.height)
-		this.ctx.drawImage(staticTexture, this.cam.TL.x + staticTexture.info.offsetX, this.cam.TL.y + staticTexture.info.offsetY, this.cam.width, this.cam.height, 0, 0, this.cam.width, this.cam.height)
-		// const BOX = this.boundingBox()
-		// staticQuad.getBB(this.boundingBox()).forEach(o => {
-		// 	const box = o.boundingBox()
-		// 	if (!Entity.isRender(box, BOX)) return;
-		// 	const v1 = subtractVectors(box.v1, this.cam.TL)
-		// 	const v2 = subtractVectors(box.v2, this.cam.TL)
-		// 	// o.render(this.ctx, v1, v2)
-		//
-		// 	// NOTE: debug border 
-		// 	this.ctx.beginPath()
-		// 	this.ctx.lineWidth = 1;
-		// 	this.ctx.rect(v1.x, v1.y, v2.x - v1.x, v2.y - v1.y);
-		// 	this.ctx.strokeStyle = o.color
-		// 	this.ctx.stroke()
-		//
-		// });
+		const sx = Math.round(this.cam.TL.x + staticTexture.info.offsetX)
+		const sy = Math.round(this.cam.TL.y + staticTexture.info.offsetY)
+		this.ctx.drawImage(staticTexture, sx, sy, this.cam.width, this.cam.height, 0, 0, this.cam.width, this.cam.height)
 	}
 
 	world2screen(v: Vector2D): Vector2D {
