@@ -29,7 +29,7 @@ function asColor(value: string): Color {
 export type GameObjectData = {
 	zIndex: number;
 	points: Polygon;
-	color: Color;
+	fill: Color | HTMLImageElement | ImageBitmap;
 	collision: boolean;
 	texture: OffscreenCanvas;
 	door?: Polygon;
@@ -41,16 +41,16 @@ export type GameObjectData = {
 export class GameObject extends Entity {
 	zIndex: number;
 	readonly points: Polygon;
-	color: Color;
+	fill: Color | HTMLImageElement | ImageBitmap;
 	collision: boolean;
 	texture: OffscreenCanvas;
 	door?: Polygon;
-	constructor(zIndex: number, points: Polygon, color: Color, doors?: Vector2D[]) {
+	constructor(zIndex: number, points: Polygon, fill: Color | HTMLImageElement | ImageBitmap, doors?: Vector2D[],) {
 		super()
 		this._boundingBox = { v1: { x: Infinity, y: Infinity }, v2: { x: -Infinity, y: -Infinity } };
 		this.zIndex = zIndex;
 		this.points = points;
-		this.color = asColor(color);
+		this.fill = typeof fill === "string" ? asColor(fill) : fill;
 		if (doors) {
 			if (doors.length % 2 !== 0) throw new Error("Not a valid door(s)")
 			for (let i = 0; i < doors.length; i += 2) {
@@ -71,10 +71,12 @@ export class GameObject extends Entity {
 			if (p.y > this._boundingBox.v2.y) this._boundingBox.v2.y = p.y;
 		}
 
-		const width = Math.ceil(this._boundingBox.v2.x - this._boundingBox.v1.x);
-		const height = Math.ceil(this._boundingBox.v2.y - this._boundingBox.v1.y);
-		this.texture = new OffscreenCanvas(width, height);
+		const scale = Math.max(globalThis.devicePixelRatio || 1, 2);
+		const bw = this._boundingBox.v2.x - this._boundingBox.v1.x;
+		const bh = this._boundingBox.v2.y - this._boundingBox.v1.y;
+		this.texture = new OffscreenCanvas(bw * scale, bh * scale);
 		const ctx = this.texture.getContext("2d")!;
+		ctx.scale(scale, scale);
 
 		ctx.beginPath();
 		ctx.moveTo(points[0].x - this._boundingBox.v1.x, points[0].y - this._boundingBox.v1.y);
@@ -82,8 +84,18 @@ export class GameObject extends Entity {
 		for (let i = 1; i < points.length; i++)
 			ctx.lineTo(points[i].x - this._boundingBox.v1.x, points[i].y - this._boundingBox.v1.y);
 		ctx.closePath();
-		ctx.fillStyle = color;
-		ctx.fill();
+
+		if (fill instanceof HTMLImageElement || fill instanceof ImageBitmap) {
+			this.fill = fill;
+			ctx.save();
+			ctx.clip();
+			ctx.drawImage(fill, 0, 0, bw, bh);
+			ctx.restore();
+		} else {
+			this.fill = asColor(fill);
+			ctx.fillStyle = fill;
+			ctx.fill();
+		}
 
 
 	}
@@ -146,7 +158,7 @@ export class GameObject extends Entity {
 	object(): GameObjectData {
 		return {
 			zIndex: this.zIndex,
-			color: this.color,
+			fill: this.fill,
 			collision: this.collision,
 			points: this.points.map(p => ({ ...p })),
 			texture: this.texture,
