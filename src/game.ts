@@ -1,4 +1,4 @@
-import { cam, hud, hudCtx, world, worldCtx, edge } from "./game/init";
+import { cam, hud, hudCtx, world, worldCtx, edge, fogCtx } from "./game/init";
 import { player } from "./game/player";
 import type { Vector2D } from "./game/types";
 import { multiplyVector, normalizeVector, subtractVectors, } from "./game/utils";
@@ -39,7 +39,19 @@ hud.onclick = (e) => {
 	const pl = new player(loc)
 	const v1 = cam.world2screen(pl.boundingBox().v1)
 	const v2 = cam.world2screen(pl.boundingBox().v2)
-	pl.render(worldCtx, v1, v2) 
+	pl.render(worldCtx, v1, v2)
+
+	// const box = pl.shadow.worldBox(loc);
+	// const origin = cam.world2screen(box.v1);
+	// const end = cam.world2screen(box.v2);
+	//
+	// const width = end.x - origin.x;
+	// const height = end.y - origin.y;
+	//
+	// fogCtx.clearRect(0, 0, world.width, world.height);
+	// fogCtx.fillStyle = "rgba(0,0,0,0.8)";
+	// fogCtx.fillRect(0, 0, world.width, world.height);
+	fogCtx.drawImage(pl.shadow.texture, 0,0);
 }
 
 hud.onmousemove = (e) => {

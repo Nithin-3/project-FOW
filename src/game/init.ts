@@ -17,7 +17,7 @@ type WorldSize = {
 	v2: { x: number; y: number };
 };
 
-const worldSize: WorldSize = { v1: { x: -2100, y: -2100 }, v2: { x: 2100, y: 2100 } };
+const worldSize: WorldSize = { v1: { x: -4100, y: -4100 }, v2: { x: 2100, y: 2100 } };
 function getWorldInfo(world: WorldSize) {
 	return {
 		width: world.v2.x - world.v1.x,

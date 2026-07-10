@@ -1,35 +1,61 @@
 import { drawShadow } from "./shape/shadow";
 import type { Vector2D } from "./types";
 import { Entity } from "./Entity";
-import { subtractVectors } from "./utils";
+import { vectorLerp } from "./utils";
 import { staticQuad } from "./init";
 
 
 export class Light extends Entity {
 	radius: number; // TODO: switch to private
 	texture: OffscreenCanvas;
+	visCanvas: OffscreenCanvas | null = null;
 	ctx: OffscreenCanvasRenderingContext2D;
 	constructor(radius: number) {
 		super()
 		this.radius = radius;
-		this.texture = new OffscreenCanvas(radius * 2, radius * 2);
+		this.texture = new OffscreenCanvas(window.innerWidth, window.innerHeight);
 		this.ctx = this.texture.getContext('2d')!;
+		window.addEventListener('resize', () => {
+			this.texture.width = window.innerWidth;
+			this.texture.height = window.innerHeight;
+		})
 	}
 
 
 	update(radius: number) {
-		this.texture.width = radius * 2;
-		this.texture.height = radius * 2;
 		this.radius = radius;
 	}
 
-	render(loc: Vector2D) {
-		const box = { v1: { x: loc.x - this.radius, y: loc.y - this.radius }, v2: { x: loc.x + this.radius, y: loc.y + this.radius } };
-		this.ctx.clearRect(0, 0, this.texture.width, this.texture.height);
-		staticQuad.getBB(box).forEach(o => {
-			const obBox = o.boundingBox()
-			if (!Entity.isRender(obBox, box)) return;
-			drawShadow(this.ctx, { x: this.radius, y: this.radius }, this.radius, o.localPoints(subtractVectors(obBox.v1, box.v1), subtractVectors(obBox.v2, box.v1)), "#fff" as any);
-		})
+	worldBox(loc: Vector2D) {
+		return {
+			v1: { x: loc.x - this.radius, y: loc.y - this.radius },
+			v2: { x: loc.x + this.radius, y: loc.y + this.radius },
+		};
 	}
+
+
+	render(loc: Vector2D, transform: (box: { v1: Vector2D, v2: Vector2D }) => { v1: Vector2D, v2: Vector2D }) {
+		const box = this.worldBox(loc);
+		const { v1, v2 } = transform(box)
+		const center = vectorLerp(v1, v2, 0.5);
+		const screenRadius = (v2.x - v1.x) / 2;
+
+		this.ctx.clearRect(0, 0, this.texture.width, this.texture.height);
+
+		this.ctx.beginPath();
+		this.ctx.arc(center.x, center.y, screenRadius, 0, Math.PI * 2);
+		this.ctx.fillStyle = "white";
+		this.ctx.fill();
+
+		this.ctx.globalCompositeOperation = "destination-out";
+		staticQuad.getBB(box).forEach(o => {
+			const obBox = o.boundingBox();
+			if (!Entity.isRender(obBox, box)) return;
+			const sObBox = transform(obBox);
+			drawShadow(this.ctx, center, screenRadius, o.localPoints(sObBox.v1, sObBox.v2), "#fff");
+		});
+		this.ctx.globalCompositeOperation = "source-over";
+	}
+
+
 }
