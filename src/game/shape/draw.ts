@@ -14,6 +14,17 @@ export function drawRandomPolygon(center: Vector2D, numPoints: number, maxRadius
 		});
 	}
 
-	return new GameObject(zIndex, pts, color)
+	const doorCount = Math.floor(Math.random() * Math.min(4, Math.floor(pts.length / 2)));
+	const doors: Vector2D[] = [];
+	if (doorCount > 0) {
+		const step = Math.max(2, Math.floor(pts.length / doorCount));
+		let idx = Math.floor(Math.random() * pts.length);
+		for (let i = 0; i < doorCount; i++) {
+			const next = (idx + 1) % pts.length;
+			doors.push(pts[idx], pts[next]);
+			idx = (idx + step) % pts.length;
+		}
+	}
+	return new GameObject(zIndex, pts, color, doors.length ? doors : undefined)
 }
 

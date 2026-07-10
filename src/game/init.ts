@@ -68,7 +68,7 @@ for (let i = 0; i < 300; i++) {
 	const y = random(worldSize.v1.y, worldSize.v2.y);
 	const points = 3 + Math.floor(Math.random() * 14);
 	const radius = 50 + Math.random() * 170;
-	const zIndex = Math.floor( random(-3, 3) )
+	const zIndex = Math.floor(random(-3, 3))
 	staticQuad.insert(drawRandomPolygon({ x, y }, points, radius, zIndex, browns[zIndex + 3] as any));
 }
 resizeCanvas();
@@ -115,10 +115,27 @@ if (pattern) {
 
 ctx.translate(info.offsetX, info.offsetY);
 
-for (const o of [ ...staticQuad.getAll() ].sort((a, b) => a.zIndex - b.zIndex)) {
+for (const o of [...staticQuad.getAll()].sort((a, b) => a.zIndex - b.zIndex)) {
 
 	const { v1, v2 } = o.boundingBox()
 	o.render(ctx, v1, v2)
+
+	if (o.door?.length) {
+		for (let i = 0; i < o.door.length; i += 2) {
+
+			const a = o.door[i];
+			const b = o.door[i + 1];
+			const mid = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+			const angle = Math.atan2(b.y - a.y, b.x - a.x);
+			ctx.save();
+			ctx.translate(mid.x, mid.y);
+			ctx.rotate(angle);
+			ctx.fillStyle = "#FFD700";
+			ctx.fillRect(-8, -4, 16, 8);
+			ctx.restore();
+
+		}
+	}
 
 	// ctx.beginPath()
 	// ctx.lineWidth = 1
