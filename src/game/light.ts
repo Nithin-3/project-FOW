@@ -8,7 +8,6 @@ import { staticQuad } from "./init";
 export class Light extends Entity {
 	radius: number; // TODO: switch to private
 	texture: OffscreenCanvas;
-	visCanvas: OffscreenCanvas | null = null;
 	ctx: OffscreenCanvasRenderingContext2D;
 	constructor(radius: number) {
 		super()
@@ -44,7 +43,7 @@ export class Light extends Entity {
 
 		this.ctx.beginPath();
 		this.ctx.arc(center.x, center.y, screenRadius, 0, Math.PI * 2);
-		this.ctx.fillStyle = "white";
+		this.ctx.fillStyle = "#fff";
 		this.ctx.fill();
 
 		this.ctx.globalCompositeOperation = "destination-out";
