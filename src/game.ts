@@ -1,10 +1,11 @@
-import { cam, hud, hudCtx, world, worldCtx, edge, fogCtx } from "./game/init";
+import { cam, hud, hudCtx, world, worldCtx, edge, fogCtx, maskCtx, maskLayer } from "./game/init";
 import { player } from "./game/player";
 import type { Vector2D } from "./game/types";
 import { multiplyVector, normalizeVector, subtractVectors, } from "./game/utils";
 
 
 let moveCam: Vector2D = { x: 0, y: 0 };
+// let movePl: Vector2D = { x: 0, y: 0 };
 document.addEventListener("keydown", (event) => {
 	switch (event.key) {
 		case "h":
@@ -32,11 +33,12 @@ document.addEventListener("keyup", (event) => {
 });
 
 
+const pl = new player({ x: 0, y: 0 })
 hud.onclick = (e) => {
 	const x = e.offsetX;
 	const y = e.offsetY;
 	const loc = cam.screen2world({ x, y })
-	const pl = new player(loc)
+	pl.loc = loc
 	const v1 = cam.world2screen(pl.boundingBox().v1)
 	const v2 = cam.world2screen(pl.boundingBox().v2)
 	pl.render(worldCtx, v1, v2)
@@ -48,10 +50,14 @@ hud.onclick = (e) => {
 	// const width = end.x - origin.x;
 	// const height = end.y - origin.y;
 	//
-	// fogCtx.clearRect(0, 0, world.width, world.height);
+	fogCtx.clearRect(0, 0, world.width, world.height);
 	// fogCtx.fillStyle = "rgba(0,0,0,0.8)";
 	// fogCtx.fillRect(0, 0, world.width, world.height);
-	fogCtx.drawImage(pl.shadow.texture, 0,0);
+	// fogCtx.fillStyle = "rgba(0,0,0,0.8)";
+	// fogCtx.fillRect(0, 0, world.width, world.height);
+	maskCtx.globalCompositeOperation = "lighter";
+	maskCtx.drawImage(pl.shadow.texture, 0, 0);
+	// fogCtx.globalCompositeOperation = "source-over";
 }
 
 hud.onmousemove = (e) => {
@@ -107,13 +113,20 @@ function gameloop() {
 	if (moveCam.x !== 0 || moveCam.y !== 0) {
 		cam.moveCamera(multiplyVector(moveCam, dt));
 		worldCtx.clearRect(0, 0, width, height);
+		fogCtx.clearRect(0, 0, world.width, world.height);
+		maskCtx.clearRect(0, 0, world.width, world.height);
+		// fogCtx.fillStyle = "rgba(0,0,0,0.8)";
+		// fogCtx.fillRect(0, 0, width, height);
 		worldCtx.drawImage(cam.texture, 0, 0, width, height)
 	}
 
 
-	// fogCtx.clearRect(0, 0, width, height);
-	// fogCtx.fillStyle = "rgba(0,0,0,0.8)";
-	// fogCtx.fillRect(0, 0, width, height);
+	fogCtx.clearRect(0, 0, width, height);
+	fogCtx.fillStyle = "rgba(0,0,0,0.8)";
+	fogCtx.fillRect(0, 0, width, height);
+	fogCtx.globalCompositeOperation = "destination-out";
+	fogCtx.drawImage(maskLayer, 0, 0);
+	fogCtx.globalCompositeOperation = "source-over";
 	// const localLight: { inst: Light; l: { x: number, y: number, r: number }; poly: Polygon[] }[] = []
 	// lights.forEach(v => {
 	// 	const box = v.boundingBox()
@@ -174,9 +187,6 @@ function gameloop() {
 	// 	_visCtx!.drawImage(_lightCanvases[i], 0, 0);
 	// }
 	//
-	// fogCtx.globalCompositeOperation = "destination-out";
-	// fogCtx.drawImage(_visCanvas!, 0, 0);
-	// fogCtx.globalCompositeOperation = "source-over";
 	//
 	if (acc >= 1000) {
 		acc = 0;

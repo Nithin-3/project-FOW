@@ -6,7 +6,7 @@ import { staticQuad } from "./init";
 
 
 export class Light extends Entity {
-	radius: number; // TODO: switch to private
+	private radius: number;
 	texture: OffscreenCanvas;
 	ctx: OffscreenCanvasRenderingContext2D;
 	constructor(radius: number) {
@@ -42,7 +42,7 @@ export class Light extends Entity {
 		this.ctx.clearRect(0, 0, this.texture.width, this.texture.height);
 
 		this.ctx.beginPath();
-		this.ctx.arc(center.x, center.y, screenRadius, 0, Math.PI * 2);
+		this.ctx.arc(center.x, center.y, screenRadius - 1, 0, Math.PI * 2);
 		this.ctx.fillStyle = "#fff";
 		this.ctx.fill();
 
@@ -51,7 +51,7 @@ export class Light extends Entity {
 			const obBox = o.boundingBox();
 			if (!Entity.isRender(obBox, box)) return;
 			const sObBox = transform(obBox);
-			drawShadow(this.ctx, center, screenRadius, o.localPoints(sObBox.v1, sObBox.v2), "#fff");
+			drawShadow(this.ctx, center, screenRadius, o.localPoints(sObBox.v1, sObBox.v2));
 		});
 		this.ctx.globalCompositeOperation = "source-over";
 	}

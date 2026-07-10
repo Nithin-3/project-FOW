@@ -7,6 +7,8 @@ import { drawRandomPolygon } from "./shape/draw";
 const fog = document.getElementById('fog') as HTMLCanvasElement;
 export const hud = document.getElementById('HUD') as HTMLCanvasElement;
 export const world = document.querySelector<HTMLCanvasElement>("#world")!;
+export const maskLayer = new OffscreenCanvas(window.innerWidth, window.innerHeight);
+export const maskCtx = maskLayer.getContext('2d')!;
 export const worldCtx = world.getContext('2d')!;
 export const fogCtx = fog.getContext('2d')!;
 export const hudCtx = hud.getContext('2d')!;
@@ -41,6 +43,8 @@ function resizeCanvas() {
 	fog.height = window.innerHeight;
 	world.width = window.innerWidth;
 	world.height = window.innerHeight;
+	maskLayer.width = window.innerWidth;
+	maskLayer.height = window.innerHeight;
 	edge = Math.min(window.innerWidth, window.innerHeight) * 0.1
 	cam.worldSize(window.innerWidth, window.innerHeight)
 }
