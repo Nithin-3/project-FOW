@@ -81,7 +81,25 @@ export const staticTexture = new OffscreenCanvas(
 
 staticTexture.info = info;
 
+function loadImage(src: string): Promise<HTMLImageElement> {
+	return new Promise((resolve, reject) => {
+		const img = new Image();
+		img.onload = () => resolve(img);
+		img.onerror = reject;
+		img.src = src;
+	});
+}
+
 const ctx = staticTexture.getContext("2d")!;
+
+const grass = await loadImage("grass_texture_64x64.png");
+
+const pattern = ctx.createPattern(grass, "repeat");
+if (pattern) {
+	ctx.fillStyle = pattern;
+	ctx.fillRect(0, 0, staticTexture.width, staticTexture.height);
+}
+
 ctx.translate(info.offsetX, info.offsetY);
 
 for (const o of staticQuad.getAll()) {
