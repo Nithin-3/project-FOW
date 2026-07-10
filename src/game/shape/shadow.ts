@@ -32,24 +32,26 @@ function distSq(a: Vector2D, b: Vector2D): number {
 	return dx * dx + dy * dy;
 }
 
-function createPath(line: Vector2D[], o: Vector2D, r: number, counterclockwise: boolean) {
-	const path = new Path2D();
-
-	path.moveTo(line[0].x, line[0].y);
-
+function createPath(line: Vector2D[], o: Vector2D, r: number) {
+	const cw = new Path2D();
+	const ccw = new Path2D();
+	cw.moveTo(line[0].x, line[0].y);
+	ccw.moveTo(line[0].x, line[0].y);
 	for (let i = 1; i < line.length; i++) {
-		path.lineTo(line[i].x, line[i].y);
+		cw.lineTo(line[i].x, line[i].y);
+		ccw.lineTo(line[i].x, line[i].y)
 	}
-
 	const a1 = Math.atan2(line[line.length - 1].y - o.y, line[line.length - 1].x - o.x);
 	const a2 = Math.atan2(line[0].y - o.y, line[0].x - o.x);
-	path.arc(o.x, o.y, r, a1, a2, counterclockwise);
-	path.closePath();
+	cw.arc(o.x, o.y, r, a1, a2, false);
+	ccw.arc(o.x, o.y, r, a1, a2, true);
+	cw.closePath();
+	ccw.closePath();
 
-	return path;
+	return { cw, ccw };
 }
-export const drawShadow = (ctx: OffscreenCanvasRenderingContext2D, o: Vector2D, r: number, points: Polygon, fillColor?: string) => {
-	const color = fillColor ?? "rgba(0,0,0,0.85)";
+export const drawShadow = (ctx: OffscreenCanvasRenderingContext2D, o: Vector2D, r: number, points: Polygon, debug = false) => {
+	const color = debug ? "rgba(0,0,0,0.85)" : "#fff";
 
 	if (points.length < 3) throw Error("invalid polygon");
 
@@ -224,11 +226,6 @@ export const drawShadow = (ctx: OffscreenCanvasRenderingContext2D, o: Vector2D, 
 		if (los < 2)
 			for (const cp of circlePolygonIntersect(o, r, points)) {
 				const lerpCp = vectorLerp(cp, o, 0.01);
-				// ctx.beginPath()
-				// ctx.moveTo(o.x, o.y);
-				// ctx.lineTo(cp.x, cp.y);
-				// ctx.strokeStyle = 'red';
-				// ctx.stroke()
 				if (pointInPolygon(lerpCp, points) || lineIntersectPolygon(cp, o, points).length > 1) continue;
 				if (distSq(cp.A, o) < rSq) {
 					const vA = shadowL.get(cp.A);
@@ -268,14 +265,9 @@ export const drawShadow = (ctx: OffscreenCanvasRenderingContext2D, o: Vector2D, 
 
 	if (path.size == 1) {
 		for (const line of path) {
-			const cw = createPath(line, o, r, false);
-			const ccw = createPath(line, o, r, true);
+			const { cw, ccw } = createPath(line, o, r);
 			ctx.fillStyle = color;
 			ctx.fill(ctx.isPointInPath(cw, o.x, o.y) ? ccw : cw)
-			if (fillColor) {
-				ctx.lineWidth = 1.5;
-				ctx.stroke(ctx.isPointInPath(cw, o.x, o.y) ? ccw : cw);
-			}
 		}
 		return;
 	}
@@ -426,7 +418,7 @@ export const drawShadow = (ctx: OffscreenCanvasRenderingContext2D, o: Vector2D, 
 	}
 
 
-	if (!fillColor) {
+	if (debug) {
 		pathPoints.forEach(S => {
 			const e = S.split(',').map(v => Number(v))
 
@@ -524,18 +516,13 @@ export const drawShadow = (ctx: OffscreenCanvasRenderingContext2D, o: Vector2D, 
 	for (let i = 0; i < pathFin.length; i++) {
 		const line = pathFin[i];
 		if (line.length < 1) continue;
-		const cw = createPath(line, o, r, false);
-		const ccw = createPath(line, o, r, true);
+		const { cw, ccw } = createPath(line, o, r);
 		ctx.lineWidth = 0;
 		ctx.fillStyle = color;
 		ctx.fill(ctx.isPointInPath(cw, o.x, o.y) ? ccw : cw)
-		if (fillColor) {
-			ctx.lineWidth = 1.5;
-			ctx.stroke(ctx.isPointInPath(cw, o.x, o.y) ? ccw : cw);
-		}
 
 
-		if (!fillColor) {
+		if (debug) {
 			ctx.beginPath()
 			ctx.lineWidth = 3
 			ctx.strokeStyle = "rgba(255,255,255,1)";
