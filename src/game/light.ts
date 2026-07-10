@@ -33,7 +33,7 @@ export class Light extends Entity {
 	}
 
 
-	render(loc: Vector2D, transform: (box: { v1: Vector2D, v2: Vector2D }) => { v1: Vector2D, v2: Vector2D }) {
+	render(loc: Vector2D, zIndex: number, transform: (box: { v1: Vector2D, v2: Vector2D }) => { v1: Vector2D, v2: Vector2D }) {
 		const box = this.worldBox(loc);
 		const { v1, v2 } = transform(box)
 		const center = vectorLerp(v1, v2, 0.5);
@@ -48,6 +48,7 @@ export class Light extends Entity {
 
 		this.ctx.globalCompositeOperation = "destination-out";
 		staticQuad.getBB(box).forEach(o => {
+			if(o.zIndex < zIndex) return;
 			const obBox = o.boundingBox();
 			if (!Entity.isRender(obBox, box)) return;
 			const sObBox = transform(obBox);

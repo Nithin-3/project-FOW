@@ -55,12 +55,21 @@ export const cam = new Camera({ TL: { x: -2000, y: -2000 }, width: cameraWidth, 
 function random(min: number, max: number) {
 	return Math.random() * (max - min) + min;
 }
+const browns = [
+	"#D2B48C", // Light Brown
+	"#C19A6B", // Tan
+	"#A67B5B", // Camel Brown
+	"#8B5A2B", // Medium Brown
+	"#6B4423", // Saddle Brown
+	"#3E2723", // Dark Brown
+];
 for (let i = 0; i < 300; i++) {
 	const x = random(worldSize.v1.x, worldSize.v2.x);
 	const y = random(worldSize.v1.y, worldSize.v2.y);
 	const points = 3 + Math.floor(Math.random() * 14);
 	const radius = 50 + Math.random() * 170;
-	staticQuad.insert(drawRandomPolygon({ x, y }, points, radius));
+	const zIndex = Math.floor( random(-3, 3) )
+	staticQuad.insert(drawRandomPolygon({ x, y }, points, radius, zIndex, browns[zIndex + 3] as any));
 }
 resizeCanvas();
 window.addEventListener('resize', resizeCanvas);
@@ -106,7 +115,7 @@ if (pattern) {
 
 ctx.translate(info.offsetX, info.offsetY);
 
-for (const o of staticQuad.getAll()) {
+for (const o of [ ...staticQuad.getAll() ].sort((a, b) => a.zIndex - b.zIndex)) {
 
 	const { v1, v2 } = o.boundingBox()
 	o.render(ctx, v1, v2)

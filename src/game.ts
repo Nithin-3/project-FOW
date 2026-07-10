@@ -111,7 +111,7 @@ function gameloop() {
 	const { width, height } = world;
 
 	if (moveCam.x !== 0 || moveCam.y !== 0) {
-		cam.moveCamera(multiplyVector(moveCam, dt));
+		cam.moveCamera(multiplyVector(moveCam, dt * 3));
 		worldCtx.clearRect(0, 0, width, height);
 		fogCtx.clearRect(0, 0, world.width, world.height);
 		maskCtx.clearRect(0, 0, world.width, world.height);

@@ -15,7 +15,7 @@ export class player extends GameObject {
 			{ x: 10, y: 10 },
 			{ x: 5, y: 0 },
 		];
-		super(1, points, "#00ff00" as Color)
+		super(0, points, "#00ff00" as Color)
 		this.collision = true;
 		this.loc = loc;
 		this.shadow = new Light(100);
@@ -36,9 +36,10 @@ export class player extends GameObject {
 
 		const scaleX = (end.x - origin.x) / (boxW * 2);
 		const scaleY = (end.y - origin.y) / (boxH * 2);
+
 		const camTL = { x: this.loc.x - boxW - origin.x / scaleX, y: this.loc.y - boxH - origin.y / scaleY, };
 
-		this.shadow.render(this.loc, (b) => ({
+		this.shadow.render(this.loc, this.zIndex, (b) => ({
 			v1: { x: (b.v1.x - camTL.x) * scaleX, y: (b.v1.y - camTL.y) * scaleY },
 			v2: { x: (b.v2.x - camTL.x) * scaleX, y: (b.v2.y - camTL.y) * scaleY },
 		}));
