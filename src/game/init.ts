@@ -2,6 +2,9 @@ import { Camera } from "./camera";
 import type { GameObject } from "./GameObject";
 import { Quad } from "./QuadTree";
 import { drawRandomPolygon } from "./shape/draw";
+import { pointInPolygon, segmentIntersect, polygonCenter, lineIntersec } from "./tools";
+import type { Polygon, Vector2D } from "./types";
+import { cross } from "./utils";
 
 
 const fog = document.getElementById('fog') as HTMLCanvasElement;
@@ -153,4 +156,99 @@ ctx.lineWidth = 20
 ctx.rect(worldSize.v1.x, worldSize.v1.y, info.width, info.height)
 ctx.strokeStyle = "#663399"
 ctx.stroke()
+
+
+// find freeSpace
+//
+
+let freeSpace: Polygon[] = [[worldSize.v1, { x: worldSize.v1.x, y: worldSize.v2.y }, worldSize.v2, { x: worldSize.v2.x, y: worldSize.v1.y }]]
+
+function splitPolygon(poly: Polygon, a: Vector2D, b: Vector2D): Polygon[] {
+	const left: Polygon = [];
+	const right: Polygon = [];
+	for (let i = 0; i < poly.length; i++) {
+		const curr = poly[i];
+		const next = poly[(i + 1) % poly.length];
+		const s1 = cross(a, b, curr);
+		const s2 = cross(a, b, next);
+
+		if (s1 >= 0) left.push(curr);
+		if (s1 <= 0) right.push(curr);
+
+		if ((s1 > 0 && s2 < 0) || (s1 < 0 && s2 > 0)) {
+			const p = lineIntersec(curr, next, a, b);
+			if (p) { left.push(p); right.push(p); }
+		}
+	}
+	const result: Polygon[] = [];
+	if (left.length > 2) result.push(left);
+	if (right.length > 2) result.push(right);
+	return result;
+}
+
+function polygonsIntersect(a: Polygon, b: Polygon): boolean {
+	for (const p of a) if (pointInPolygon(p, b)) return true;
+	for (const p of b) if (pointInPolygon(p, a)) return true;
+	for (let i = 0; i < a.length; i++) {
+		const a1 = a[i], a2 = a[(i + 1) % a.length];
+		for (let j = 0; j < b.length; j++) {
+			if (segmentIntersect(a1, a2, b[j], b[(j + 1) % b.length])) return true;
+		}
+	}
+	return false;
+}
+
+const objects = staticQuad.getAll();
+
+// Partition free space by each object's edge lines, keep pieces outside each object
+for (const o of objects) {
+	const pts = o.points;
+	const newFree: Polygon[] = [];
+
+	for (const fs of freeSpace) {
+		if (!polygonsIntersect(fs, pts)) {
+			newFree.push(fs);
+			continue;
+		}
+
+		let pieces: Polygon[] = [fs];
+
+		for (let i = 0; i < pts.length; i++) {
+			const a = pts[i];
+			const b = pts[(i + 1) % pts.length];
+			const next: Polygon[] = [];
+			for (const piece of pieces) {
+				if (piece.length < 3) continue;
+				const split = splitPolygon(piece, a, b);
+				next.push(...split);
+			}
+			pieces = next;
+			if (pieces.length === 0) break;
+		}
+
+		for (const piece of pieces) {
+			if (piece.length < 3) continue;
+			const center = polygonCenter(piece);
+			if (center && !pointInPolygon(center, pts)) {
+				newFree.push(piece);
+			}
+		}
+	}
+
+	freeSpace = newFree;
+}
+
+ctx.lineWidth = 1
+for (let t = 0; t < freeSpace.length; t++) {
+	ctx.beginPath()
+	ctx.moveTo(freeSpace[t][0].x, freeSpace[t][0].y);
+	for (let p = 1; p < freeSpace[t].length; p++)
+		ctx.lineTo(freeSpace[t][p].x, freeSpace[t][p].y);
+	ctx.closePath()
+	ctx.strokeStyle = "red"
+	ctx.stroke()
+}
+
+
+
 
