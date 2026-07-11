@@ -1,4 +1,4 @@
-import { circlePolygonIntersect, lineIntersectPolygon, pointInPolygon, segmentIntersect } from "../tools";
+import { circlePolygonIntersect, segmentIntersectPolygon, pointInPolygon, segmentIntersect } from "../tools";
 import type { Polygon, Vector2D } from "../types";
 import { subtractVectors, vectorLerp } from "../utils";
 
@@ -207,7 +207,7 @@ export const drawShadow = (ctx: OffscreenCanvasRenderingContext2D, o: Vector2D, 
 				}
 
 				if (!pointInPolygon(nudgedToO, points)) {
-					const intersections = lineIntersectPolygon(nudgedToO, o, points);
+					const intersections = segmentIntersectPolygon(nudgedToO, o, points);
 					if (intersections.length == 0) {
 						faceP.push(p)
 						facePSet.add(key(p))
@@ -226,7 +226,7 @@ export const drawShadow = (ctx: OffscreenCanvasRenderingContext2D, o: Vector2D, 
 		if (los < 2)
 			for (const cp of circlePolygonIntersect(o, r, points)) {
 				const lerpCp = vectorLerp(cp, o, 0.01);
-				if (pointInPolygon(lerpCp, points) || lineIntersectPolygon(cp, o, points).length > 1) continue;
+				if (pointInPolygon(lerpCp, points) || segmentIntersectPolygon(cp, o, points).length > 1) continue;
 				if (distSq(cp.A, o) < rSq) {
 					const vA = shadowL.get(cp.A);
 					if (vA)
