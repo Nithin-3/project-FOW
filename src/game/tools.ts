@@ -1,5 +1,5 @@
 import type { Vector2D, Polygon } from './types';
-import { subtractVectors, crossProduct, vectorLength, multiplyVector, addVectors, } from './utils';
+import { subtractVectors, crossProduct, vectorLength, multiplyVector, addVectors, cross, } from './utils';
 
 // Perpendicular distance from point P to infinite line AB
 // formula: |(B-A) × (P-A)| / |B-A|
@@ -50,7 +50,7 @@ export function lineSegmentIntersection(A: Vector2D, B: Vector2D, C: Vector2D, D
 }
 
 // All intersection points of a ray (x1,y1→x2,y2) with a polygon, sorted by distance
-export function lineIntersectPolygon(p1: Vector2D, p2: Vector2D, polygon: Polygon): (Vector2D & { A: Vector2D; B: Vector2D })[] {
+export function segmentIntersectPolygon(p1: Vector2D, p2: Vector2D, polygon: Polygon): (Vector2D & { A: Vector2D; B: Vector2D })[] {
 	const pts: (Vector2D & { A: Vector2D; B: Vector2D })[] = [];
 	for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
 		const hit = segmentIntersect(p1, p2, polygon[j], polygon[i]);
@@ -67,20 +67,57 @@ export function lineIntersectPolygon(p1: Vector2D, p2: Vector2D, polygon: Polygo
 	return unique;
 }
 
+export function linetIntersectPolygon(p1: Vector2D, p2: Vector2D, polygon: Polygon): (Vector2D & { A: Vector2D; B: Vector2D })[] {
+	const pts: (Vector2D & { A: Vector2D; B: Vector2D })[] = [];
+	for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+		const hit = lineIntersec(p1, p2, polygon[j], polygon[i]);
+		if (hit) pts.push({ x: hit.x, y: hit.y, A: polygon[j], B: polygon[i] });
+	}
+	const unique: (Vector2D & { A: Vector2D; B: Vector2D })[] = [];
+	const dedupSet = new Set<string>();
+	for (const p of pts) {
+		const qk = `${Math.round(p.x * 1000)},${Math.round(p.y * 1000)}`;
+		if (dedupSet.has(qk)) continue;
+		dedupSet.add(qk);
+		unique.push(p);
+	}
+	return unique;
+}
+
+export function pointOnSegment(p: Vector2D, a: Vector2D, b: Vector2D, eps = 1e-9): boolean {
+	// Collinear?
+	if (Math.abs(cross(a, b, p)) > eps) {
+		return false;
+	}
+
+	return (
+		p.x >= Math.min(a.x, b.x) - eps &&
+		p.x <= Math.max(a.x, b.x) + eps &&
+		p.y >= Math.min(a.y, b.y) - eps &&
+		p.y <= Math.max(a.y, b.y) + eps
+	);
+}
+
 // Point-in-polygon test using ray casting algorithm
 // formula: count edge crossings; odd = inside, even = outside
 export function pointInPolygon(v: Vector2D, polygon: Polygon): boolean {
 	const px = v.x;
 	const py = v.y;
+
 	let inside = false;
+
 	for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
-		const xi = polygon[i].x, yi = polygon[i].y;
-		const xj = polygon[j].x, yj = polygon[j].y;
-		if ((yi > py) !== (yj > py) &&
-			px < (xj - xi) * (py - yi) / (yj - yi) + xi) {
+		const a = polygon[j];
+		const b = polygon[i];
+
+		// Boundary is considered outside
+		if (pointOnSegment(v, a, b))
+			return false;
+
+		if ((a.y > py) !== (b.y > py) && px < ((b.x - a.x) * (py - a.y)) / (b.y - a.y) + a.x)
 			inside = !inside;
-		}
 	}
+
 	return inside;
 }
 

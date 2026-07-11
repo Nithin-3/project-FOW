@@ -39,9 +39,9 @@ export function multiplyVector(v: Vector2D, s: number): Vector2D {
 	return { x: v.x * s, y: v.y * s };
 }
 
-export function cross(o: Vector2D, a: Vector2D, b: Vector2D): number {
-	return (a.x - o.x) * (b.y - o.y)
-		- (a.y - o.y) * (b.x - o.x);
+export function cross(A: Vector2D, B: Vector2D, C: Vector2D): number {
+	return (B.x - A.x) * (C.y - A.y)
+		- (B.y - A.y) * (C.x - A.x);
 }
 
 export function key(v: Vector2D): string {
