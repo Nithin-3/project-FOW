@@ -108,7 +108,7 @@ function loadImage(src: string): Promise<HTMLImageElement> {
 
 const ctx = staticTexture.getContext("2d")!;
 
-const grass = await loadImage("grass_texture_64x64.png");
+const grass = await loadImage("sand_128x128.png");
 
 const pattern = ctx.createPattern(grass, "repeat");
 if (pattern) {
