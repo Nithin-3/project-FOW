@@ -45,4 +45,12 @@ export class player extends GameObject {
 		}));
 	}
 
+
+	findPath(to:Vector2D){
+		to
+
+		// TODO: find path
+
+	}
+
 }
