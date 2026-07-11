@@ -88,7 +88,7 @@ hud.onmousemove = (e) => {
 
 hud.onmouseleave = () => moveCam = { x: 0, y: 0 };
 
-function drawDebug(ctx: CanvasRenderingContext2D, items: Record<string, string | number>, x = 10, y = 10, lineH = 10) {
+function drawDebug(ctx: CanvasRenderingContext2D, items: Record<string, string | number>, x = 10, y = 10, lineH = 15) {
 	ctx.font = "10px sans-serif"
 	ctx.fillStyle = "rgb(25,255,255)"
 	for (const [label, value] of Object.entries(items)) {
@@ -101,12 +101,13 @@ let lasttime = performance.now();
 
 
 let acc = 0;
-let totPolyCam = 0, totpolyLigPnt = 0;
+let frameCount = 0;
 function gameloop() {
 	const now = performance.now()
 	const dt = now - lasttime
 	lasttime = now;
 	acc += dt;
+frameCount++;
 
 	const { width, height } = world;
 
@@ -127,6 +128,7 @@ function gameloop() {
 	fogCtx.globalCompositeOperation = "destination-out";
 	fogCtx.drawImage(maskLayer, 0, 0);
 	fogCtx.globalCompositeOperation = "source-over";
+
 	// const localLight: { inst: Light; l: { x: number, y: number, r: number }; poly: Polygon[] }[] = []
 	// lights.forEach(v => {
 	// 	const box = v.boundingBox()
@@ -189,13 +191,14 @@ function gameloop() {
 	//
 	//
 	if (acc >= 1000) {
+		const avg = frameCount;
+		frameCount = 0;
 		acc = 0;
 		hudCtx.clearRect(0, 0, width, height)
 		drawDebug(hudCtx, {
 			fps: Math.ceil(1000 / dt),
-			'visible Polygon': totPolyCam,
-			// 'visible lights': localLight.length,
-			'lights polygon': totpolyLigPnt,
+			frameTime: `${dt} ms`,
+			frameGenerated: avg,
 		})
 	}
 
