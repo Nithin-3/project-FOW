@@ -1,10 +1,9 @@
 import { Camera } from "./camera";
 import type { GameObject } from "./GameObject";
+import { triangulateWithHoles } from "./navigationMesh";
 import { Quad } from "./QuadTree";
 import { drawRandomPolygon } from "./shape/draw";
-import { pointInPolygon, segmentIntersect, polygonCenter, lineIntersec } from "./tools";
-import type { Polygon, Vector2D } from "./types";
-import { cross } from "./utils";
+import type { Polygon } from "./types";
 
 
 const fog = document.getElementById('fog') as HTMLCanvasElement;
@@ -17,47 +16,20 @@ export const fogCtx = fog.getContext('2d')!;
 export const hudCtx = hud.getContext('2d')!;
 
 const cameraWidth = 950
-type WorldSize = {
-	v1: { x: number; y: number };
-	v2: { x: number; y: number };
-};
 
-const worldSize: WorldSize = { v1: { x: -4100, y: -4100 }, v2: { x: 2100, y: 2100 } };
-function getWorldInfo(world: WorldSize) {
-	return {
-		width: world.v2.x - world.v1.x,
-		height: world.v2.y - world.v1.y,
-		offsetX: -world.v1.x,
-		offsetY: -world.v1.y,
-	};
-}
+const worldSize = { v1: { x: -4100, y: -4100 }, v2: { x: 2100, y: 2100 } };
+const getWorldInfo = (world: any) => ({ width: world.v2.x - world.v1.x, height: world.v2.y - world.v1.y, offsetX: -world.v1.x, offsetY: -world.v1.y, });
 
 
-function getHeight(width: number): number {
-	const aspectRatio = window.innerWidth / window.innerHeight;
-	return width / aspectRatio;
-}
-
-export let edge: number = 0;
-function resizeCanvas() {
-	hud.width = window.innerWidth;
-	hud.height = window.innerHeight;
-	fog.width = window.innerWidth;
-	fog.height = window.innerHeight;
-	world.width = window.innerWidth;
-	world.height = window.innerHeight;
-	maskLayer.width = window.innerWidth;
-	maskLayer.height = window.innerHeight;
-	edge = Math.min(window.innerWidth, window.innerHeight) * 0.1
-	cam.worldSize(window.innerWidth, window.innerHeight)
-}
-
+const getHeight = (width: number): number => (width / (window.innerWidth / window.innerHeight));
 
 export const staticQuad = new Quad<GameObject>(worldSize, 20)
-export const cam = new Camera({ TL: { x: -2000, y: -2000 }, width: cameraWidth, height: getHeight(cameraWidth) })
-function random(min: number, max: number) {
-	return Math.random() * (max - min) + min;
-}
+export const cam = new Camera({ loc: { x: -2000, y: -2000 }, width: cameraWidth, height: getHeight(cameraWidth) })
+
+
+const randomRange = (min: number, max: number) => Math.random() * (max - min) + min;
+
+
 const browns = [
 	"#D2B48C", // Light Brown
 	"#C19A6B", // Tan
@@ -66,16 +38,16 @@ const browns = [
 	"#6B4423", // Saddle Brown
 	"#3E2723", // Dark Brown
 ];
-for (let i = 0; i < 300; i++) {
-	const x = random(worldSize.v1.x, worldSize.v2.x);
-	const y = random(worldSize.v1.y, worldSize.v2.y);
+
+
+for (let i = 0; i < 900; i++) {
+	const x = randomRange(worldSize.v1.x, worldSize.v2.x);
+	const y = randomRange(worldSize.v1.y, worldSize.v2.y);
 	const points = 3 + Math.floor(Math.random() * 14);
 	const radius = 50 + Math.random() * 170;
-	const zIndex = Math.floor(random(-3, 3))
+	const zIndex = Math.floor(randomRange(-3, 3))
 	staticQuad.insert(drawRandomPolygon({ x, y }, points, radius, zIndex, browns[zIndex + 3] as any));
 }
-resizeCanvas();
-window.addEventListener('resize', resizeCanvas);
 
 type WorldInfo = {
 	width: number;
@@ -84,17 +56,10 @@ type WorldInfo = {
 	offsetY: number;
 };
 
-type StaticTexture = OffscreenCanvas & {
-	info: WorldInfo;
-};
 
 const info = getWorldInfo(worldSize);
 
-export const staticTexture = new OffscreenCanvas(
-	info.width,
-	info.height
-) as StaticTexture;
-
+export const staticTexture = new OffscreenCanvas(info.width, info.height) as OffscreenCanvas & { info: WorldInfo };
 staticTexture.info = info;
 
 function loadImage(src: string): Promise<HTMLImageElement> {
@@ -108,7 +73,7 @@ function loadImage(src: string): Promise<HTMLImageElement> {
 
 const ctx = staticTexture.getContext("2d")!;
 
-const grass = await loadImage("sand_128x128.png");
+const grass = await loadImage("grass_128x128.png");
 
 const pattern = ctx.createPattern(grass, "repeat");
 if (pattern) {
@@ -147,9 +112,7 @@ for (const o of [...staticQuad.getAll()].sort((a, b) => a.zIndex - b.zIndex)) {
 	// ctx.stroke()
 }
 
-staticQuad.drawDebug(ctx, ({ v1, v2 }) => {
-	return { v1, v2 }
-})
+staticQuad.drawDebug(ctx, ({ v1, v2 }) => ({ v1, v2 }))
 
 ctx.beginPath()
 ctx.lineWidth = 20
@@ -157,98 +120,37 @@ ctx.rect(worldSize.v1.x, worldSize.v1.y, info.width, info.height)
 ctx.strokeStyle = "#663399"
 ctx.stroke()
 
+// --- Triangulate the world rect with objects as holes ---
+const worldRect: Polygon = [worldSize.v1, { x: worldSize.v1.x, y: worldSize.v2.y }, worldSize.v2, { x: worldSize.v2.x, y: worldSize.v1.y },];
 
-// find freeSpace
-//
+const triangles = triangulateWithHoles(worldRect, [...staticQuad.getAll()].map(o => o.points));
 
-let freeSpace: Polygon[] = [[worldSize.v1, { x: worldSize.v1.x, y: worldSize.v2.y }, worldSize.v2, { x: worldSize.v2.x, y: worldSize.v1.y }]]
-
-function splitPolygon(poly: Polygon, a: Vector2D, b: Vector2D): Polygon[] {
-	const left: Polygon = [];
-	const right: Polygon = [];
-	for (let i = 0; i < poly.length; i++) {
-		const curr = poly[i];
-		const next = poly[(i + 1) % poly.length];
-		const s1 = cross(a, b, curr);
-		const s2 = cross(a, b, next);
-
-		if (s1 >= 0) left.push(curr);
-		if (s1 <= 0) right.push(curr);
-
-		if ((s1 > 0 && s2 < 0) || (s1 < 0 && s2 > 0)) {
-			const p = lineIntersec(curr, next, a, b);
-			if (p) { left.push(p); right.push(p); }
-		}
-	}
-	const result: Polygon[] = [];
-	if (left.length > 2) result.push(left);
-	if (right.length > 2) result.push(right);
-	return result;
-}
-
-function polygonsIntersect(a: Polygon, b: Polygon): boolean {
-	for (const p of a) if (pointInPolygon(p, b)) return true;
-	for (const p of b) if (pointInPolygon(p, a)) return true;
-	for (let i = 0; i < a.length; i++) {
-		const a1 = a[i], a2 = a[(i + 1) % a.length];
-		for (let j = 0; j < b.length; j++) {
-			if (segmentIntersect(a1, a2, b[j], b[(j + 1) % b.length])) return true;
-		}
-	}
-	return false;
-}
-
-const objects = staticQuad.getAll();
-
-// Partition free space by each object's edge lines, keep pieces outside each object
-for (const o of objects) {
-	const pts = o.points;
-	const newFree: Polygon[] = [];
-
-	for (const fs of freeSpace) {
-		if (!polygonsIntersect(fs, pts)) {
-			newFree.push(fs);
-			continue;
-		}
-
-		let pieces: Polygon[] = [fs];
-
-		for (let i = 0; i < pts.length; i++) {
-			const a = pts[i];
-			const b = pts[(i + 1) % pts.length];
-			const next: Polygon[] = [];
-			for (const piece of pieces) {
-				if (piece.length < 3) continue;
-				const split = splitPolygon(piece, a, b);
-				next.push(...split);
-			}
-			pieces = next;
-			if (pieces.length === 0) break;
-		}
-
-		for (const piece of pieces) {
-			if (piece.length < 3) continue;
-			const center = polygonCenter(piece);
-			if (center && !pointInPolygon(center, pts)) {
-				newFree.push(piece);
-			}
-		}
-	}
-
-	freeSpace = newFree;
-}
-
-ctx.lineWidth = 1
-for (let t = 0; t < freeSpace.length; t++) {
-	ctx.beginPath()
-	ctx.moveTo(freeSpace[t][0].x, freeSpace[t][0].y);
-	for (let p = 1; p < freeSpace[t].length; p++)
-		ctx.lineTo(freeSpace[t][p].x, freeSpace[t][p].y);
-	ctx.closePath()
-	ctx.strokeStyle = "red"
-	ctx.stroke()
+console.log(triangles.length)
+ctx.strokeStyle = "red";
+ctx.lineWidth = 1;
+for (const tri of triangles) {
+	ctx.beginPath();
+	ctx.moveTo(tri[0].x, tri[0].y);
+	for (let i = 1; i < tri.length; i++) ctx.lineTo(tri[i].x, tri[i].y);
+	ctx.closePath();
+	ctx.stroke();
 }
 
 
-
+export let edge: number = 0;
+function resizeCanvas() {
+	hud.width = window.innerWidth;
+	hud.height = window.innerHeight;
+	fog.width = window.innerWidth;
+	fog.height = window.innerHeight;
+	world.width = window.innerWidth;
+	world.height = window.innerHeight;
+	maskLayer.width = window.innerWidth;
+	maskLayer.height = window.innerHeight;
+	edge = Math.min(window.innerWidth, window.innerHeight) * 0.1
+	cam.screenSize(window.innerWidth, window.innerHeight)
+	cam.updateSize(cameraWidth, getHeight(cameraWidth))
+}
+resizeCanvas();
+window.addEventListener('resize', resizeCanvas);
 
