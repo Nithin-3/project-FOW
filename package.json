@@ -11,5 +11,9 @@
   "devDependencies": {
     "typescript": "~6.0.2",
     "vite": "^8.1.0"
+  },
+  "dependencies": {
+    "earcut": "^3.2.3",
+    "polygon-clipping": "^0.15.7"
   }
 }
