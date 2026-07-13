@@ -44,7 +44,7 @@ export class GameObject extends Entity {
 	fill: Color | HTMLImageElement | ImageBitmap;
 	collision: boolean;
 	texture: OffscreenCanvas;
-	door?: Polygon;
+	readonly door?: Polygon;
 	constructor(zIndex: number, points: Polygon, fill: Color | HTMLImageElement | ImageBitmap, doors?: Vector2D[],) {
 		super()
 		this._boundingBox = { v1: { x: Infinity, y: Infinity }, v2: { x: -Infinity, y: -Infinity } };
