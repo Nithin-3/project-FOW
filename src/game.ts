@@ -1,5 +1,5 @@
 import { cam, hud, hudCtx, world, worldCtx, edge, fogCtx, maskCtx, maskLayer } from "./game/init";
-import { player } from "./game/player";
+import { player } from "./game/classes/player";
 import type { Vector2D } from "./game/types";
 import { multiplyVector, normalizeVector, subtractVectors, } from "./game/utils";
 

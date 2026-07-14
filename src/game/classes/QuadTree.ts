@@ -1,5 +1,5 @@
-import type { Vector2D } from "./types";
-import { vectorLerp } from "./utils";
+import type { Vector2D } from "../types";
+import { vectorLerp } from "../utils";
 
 const CAPACITY = 64;
 export class Quad<T extends { boundingBox: () => { v1: Vector2D, v2: Vector2D } }> {

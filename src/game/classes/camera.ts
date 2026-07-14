@@ -1,7 +1,7 @@
-import type { Vector2D } from "./types";
+import type { Vector2D } from "../types";
 import { Entity } from "./Entity";
-import { addVectors, vectorLerp } from "./utils";
-import { staticTexture } from "./init";
+import { addVectors, vectorLerp } from "../utils";
+import { staticTexture } from "../init";
 
 type RECT = { loc: Vector2D, width: number, height: number };
 

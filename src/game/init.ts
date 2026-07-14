@@ -1,8 +1,8 @@
-import { Camera } from "./camera";
-import { Entity } from "./Entity";
-import type { GameObject } from "./GameObject";
+import { Camera } from "./classes/camera";
+import { Entity } from "./classes/Entity";
+import type { GameObject } from "./classes/GameObject";
 import { triangulate } from "./navigationMesh";
-import { Quad } from "./QuadTree";
+import { Quad } from "./classes/QuadTree";
 import { drawRandomPolygon } from "./shape/draw";
 import type { Polygon } from "./types";
 import { key } from "./utils";

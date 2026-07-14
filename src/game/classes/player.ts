@@ -1,6 +1,6 @@
 import { GameObject } from "./GameObject";
 import { Light } from "./light";
-import type { Color, Polygon, Vector2D } from "./types";
+import type { Color, Polygon, Vector2D } from "../types";
 
 
 

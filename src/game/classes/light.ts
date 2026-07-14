@@ -1,8 +1,8 @@
-import { drawShadow } from "./shape/shadow";
-import type { Vector2D } from "./types";
+import { drawShadow } from "../shape/shadow";
+import type { Vector2D } from "../types";
 import { Entity } from "./Entity";
-import { vectorLerp } from "./utils";
-import { staticQuad } from "./init";
+import { vectorLerp } from "../utils";
+import { staticQuad } from "../init";
 
 
 export class Light extends Entity {

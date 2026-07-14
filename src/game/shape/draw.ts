@@ -1,4 +1,4 @@
-import { GameObject } from "../GameObject";
+import { GameObject } from "../classes/GameObject";
 import type { Color, Polygon, Vector2D } from "../types";
 
 export function drawRandomPolygon(center: Vector2D, numPoints: number, maxRadius: number, zIndex: number, color: Color = `#${Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0')}` as Color) {

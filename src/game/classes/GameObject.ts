@@ -1,6 +1,6 @@
-import type { Vector2D, Polygon, Color } from "./types";
+import type { Vector2D, Polygon, Color } from "../types";
 import { Entity } from "./Entity";
-import { cross } from "./utils";
+import { cross } from "../utils";
 
 export function vectorEquals(a: Vector2D, b: Vector2D): boolean {
 	return a.x === b.x && a.y === b.y;

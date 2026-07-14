@@ -1,5 +1,5 @@
-import { Uid } from "./uid";
-import type { Vector2D } from "./types";
+import { Uid } from "../uid";
+import type { Vector2D } from "../types";
 
 export abstract class Entity {
 	readonly id: number;
