@@ -1,9 +1,11 @@
 import { Camera } from "./camera";
+import { Entity } from "./Entity";
 import type { GameObject } from "./GameObject";
-import { triangulateWithHoles } from "./navigationMesh";
+import { triangulate } from "./navigationMesh";
 import { Quad } from "./QuadTree";
 import { drawRandomPolygon } from "./shape/draw";
 import type { Polygon } from "./types";
+import { key } from "./utils";
 
 
 const fog = document.getElementById('fog') as HTMLCanvasElement;
@@ -40,7 +42,7 @@ const browns = [
 ];
 
 
-for (let i = 0; i < 900; i++) {
+for (let i = 0; i < 300; i++) {
 	const x = randomRange(worldSize.v1.x, worldSize.v2.x);
 	const y = randomRange(worldSize.v1.y, worldSize.v2.y);
 	const points = 3 + Math.floor(Math.random() * 14);
@@ -83,16 +85,20 @@ if (pattern) {
 
 ctx.translate(info.offsetX, info.offsetY);
 
+const doorObj = new Map<string, { isDraw: boolean, o: GameObject }>();
 for (const o of [...staticQuad.getAll()].sort((a, b) => a.zIndex - b.zIndex)) {
 
 	const { v1, v2 } = o.boundingBox()
 	o.render(ctx, v1, v2)
-
+	const obj = { isDraw: false, o }
 	if (o.door?.length) {
 		for (let i = 0; i < o.door.length; i += 2) {
 
 			const a = o.door[i];
 			const b = o.door[i + 1];
+			doorObj.set(key(a), obj);
+			doorObj.set(key(b), obj);
+
 			const mid = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
 			const angle = Math.atan2(b.y - a.y, b.x - a.x);
 			ctx.save();
@@ -103,6 +109,7 @@ for (const o of [...staticQuad.getAll()].sort((a, b) => a.zIndex - b.zIndex)) {
 			ctx.restore();
 
 		}
+
 	}
 
 	// ctx.beginPath()
@@ -111,6 +118,8 @@ for (const o of [...staticQuad.getAll()].sort((a, b) => a.zIndex - b.zIndex)) {
 	// ctx.strokeStyle = o.fill as any
 	// ctx.stroke()
 }
+
+
 
 staticQuad.drawDebug(ctx, ({ v1, v2 }) => ({ v1, v2 }))
 
@@ -123,15 +132,31 @@ ctx.stroke()
 // --- Triangulate the world rect with objects as holes ---
 const worldRect: Polygon = [worldSize.v1, { x: worldSize.v1.x, y: worldSize.v2.y }, worldSize.v2, { x: worldSize.v2.x, y: worldSize.v1.y },];
 
-const triangles = triangulateWithHoles(worldRect, [...staticQuad.getAll()].map(o => o.points));
+const triangles = triangulate(worldRect, [...staticQuad.getAll()].map(o => o.points));
 
 console.log(triangles.length)
+ctx.lineWidth = 0.5;
 ctx.strokeStyle = "red";
-ctx.lineWidth = 1;
 for (const tri of triangles) {
 	ctx.beginPath();
 	ctx.moveTo(tri[0].x, tri[0].y);
-	for (let i = 1; i < tri.length; i++) ctx.lineTo(tri[i].x, tri[i].y);
+	const entry = doorObj.get(key(tri[0]));
+	if (entry && !entry.isDraw) {
+		const inside = [...staticQuad.getBB(entry.o.boundingBox())].filter(inner => inner !== entry.o && entry.o.zIndex < inner.zIndex && Entity.isRender(inner.boundingBox(), entry.o.boundingBox()));
+		const triangle = triangulate(entry.o.points, inside.map(inner => inner.points))
+		triangles.push(...triangle)
+		entry.isDraw = true
+	}
+	for (let i = 1; i < tri.length; i++) {
+		const entry = doorObj.get(key(tri[i]));
+		if (entry && !entry.isDraw) {
+			const inside = [...staticQuad.getBB(entry.o.boundingBox())].filter(inner => inner !== entry.o && entry.o.zIndex < inner.zIndex && Entity.isRender(inner.boundingBox(), entry.o.boundingBox()));
+			const triangle = triangulate(entry.o.points, inside.map(inner => inner.points))
+			triangles.push(...triangle)
+			entry.isDraw = true
+		}
+		ctx.lineTo(tri[i].x, tri[i].y);
+	}
 	ctx.closePath();
 	ctx.stroke();
 }
