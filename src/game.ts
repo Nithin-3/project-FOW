@@ -1,7 +1,8 @@
-import { cam, hud, hudCtx, world, worldCtx, edge, fogCtx, maskCtx, maskLayer } from "./game/init";
+import { cam, hud, hudCtx, world, worldCtx, edge, fogCtx, maskCtx, maskLayer, triQuad } from "./game/init";
 import { player } from "./game/classes/player";
 import type { Vector2D } from "./game/types";
 import { multiplyVector, normalizeVector, subtractVectors, } from "./game/utils";
+import { pointInPolygon } from "./game/tools";
 
 
 let moveCam: Vector2D = { x: 0, y: 0 };
@@ -58,6 +59,27 @@ hud.onclick = (e) => {
 	maskCtx.globalCompositeOperation = "lighter";
 	maskCtx.drawImage(pl.shadow.texture, 0, 0);
 	// fogCtx.globalCompositeOperation = "source-over";
+
+	triQuad.getLeafQuad(loc).forEach(v => {
+		if (pointInPolygon(loc, v.vertex)) {
+			const drawTri = (t: typeof v) => {
+				const a = cam.world2screen(t.vertex[0]);
+				const b = cam.world2screen(t.vertex[1]);
+				const c = cam.world2screen(t.vertex[2]);
+				worldCtx.beginPath();
+				worldCtx.moveTo(a.x, a.y);
+				worldCtx.lineTo(b.x, b.y);
+				worldCtx.lineTo(c.x, c.y);
+				worldCtx.closePath();
+				worldCtx.strokeStyle = "purple";
+				worldCtx.lineWidth = 2;
+				worldCtx.stroke();
+			};
+			drawTri(v);
+			[v.neighbor0, v.neighbor1, v.neighbor2].forEach(n => n && drawTri(n));
+		}
+
+	})
 }
 
 hud.onmousemove = (e) => {
@@ -107,7 +129,7 @@ function gameloop() {
 	const dt = now - lasttime
 	lasttime = now;
 	acc += dt;
-frameCount++;
+	frameCount++;
 
 	const { width, height } = world;
 
@@ -122,12 +144,12 @@ frameCount++;
 	}
 
 
-	fogCtx.clearRect(0, 0, width, height);
-	fogCtx.fillStyle = "rgba(0,0,0,0.8)";
-	fogCtx.fillRect(0, 0, width, height);
-	fogCtx.globalCompositeOperation = "destination-out";
-	fogCtx.drawImage(maskLayer, 0, 0);
-	fogCtx.globalCompositeOperation = "source-over";
+	// fogCtx.clearRect(0, 0, width, height);
+	// fogCtx.fillStyle = "rgba(0,0,0,0.8)";
+	// fogCtx.fillRect(0, 0, width, height);
+	// fogCtx.globalCompositeOperation = "destination-out";
+	// fogCtx.drawImage(maskLayer, 0, 0);
+	// fogCtx.globalCompositeOperation = "source-over";
 
 	// const localLight: { inst: Light; l: { x: number, y: number, r: number }; poly: Polygon[] }[] = []
 	// lights.forEach(v => {

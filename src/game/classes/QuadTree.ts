@@ -3,7 +3,7 @@ import { vectorLerp } from "../utils";
 
 const CAPACITY = 64;
 export class Quad<T extends { boundingBox: () => { v1: Vector2D, v2: Vector2D } }> {
-	points: T[] = [];
+	entity: T[] = [];
 	boundingBox: { v1: Vector2D, v2: Vector2D };
 	mid: Vector2D;
 	cap: number;
@@ -48,12 +48,12 @@ export class Quad<T extends { boundingBox: () => { v1: Vector2D, v2: Vector2D } 
 			if (this.IIquad!.contains(objBox)) return this.IIquad!.insert(obj);
 			if (this.IIIquad!.contains(objBox)) return this.IIIquad!.insert(obj);
 			if (this.IVquad!.contains(objBox)) return this.IVquad!.insert(obj);
-			this.points.push(obj)
+			this.entity.push(obj)
 			return;
 		}
 
-		if (this.points.length < this.cap) {
-			this.points.push(obj);
+		if (this.entity.length < this.cap) {
+			this.entity.push(obj);
 			return;
 		}
 
@@ -63,28 +63,31 @@ export class Quad<T extends { boundingBox: () => { v1: Vector2D, v2: Vector2D } 
 		this.IIIquad = new Quad({ v1: this.boundingBox.v1, v2: { x: this.mid.x, y: this.mid.y } }, this.cap);
 		this.IVquad = new Quad({ v1: { x: this.mid.x, y: this.boundingBox.v1.y }, v2: { x: this.boundingBox.v2.x, y: this.mid.y } }, this.cap);
 
-		const copy = [...this.points];
-		if (this.points.length) this.points = [];
+		const copy = [...this.entity];
+		if (this.entity.length) this.entity = [];
 		for (const p of copy) this.insert(p);
 
 		this.insert(obj);
 	}
 
 
-	getLeafQuad(v: Vector2D): Quad<T> {
+	getLeafQuad(v: Vector2D, result = new Set<T>()): Set<T> {
+		for (const obj of this.entity)
+			result.add(obj);
+
 		if (this.Iquad !== null) {
-			if (v.x >= this.mid.x && v.y >= this.mid.y) return this.Iquad!.getLeafQuad(v)
-			else if (v.x < this.mid.x && v.y >= this.mid.y) return this.IIquad!.getLeafQuad(v)
-			else if (v.x < this.mid.x && v.y < this.mid.y) return this.IIIquad!.getLeafQuad(v)
-			else return this.IVquad!.getLeafQuad(v)
+			if (v.x >= this.mid.x && v.y >= this.mid.y) return this.Iquad!.getLeafQuad(v, result)
+			else if (v.x < this.mid.x && v.y >= this.mid.y) return this.IIquad!.getLeafQuad(v, result)
+			else if (v.x < this.mid.x && v.y < this.mid.y) return this.IIIquad!.getLeafQuad(v, result)
+			else return this.IVquad!.getLeafQuad(v, result)
 		}
-		return this;
+		return result;
 	}
 
 	getBB(box: { v1: Vector2D, v2: Vector2D }, result = new Set<T>()) {
 		if (!this.overlaps(box)) return result;
 
-		for (const obj of this.points)
+		for (const obj of this.entity)
 			result.add(obj);
 
 		this.Iquad?.getBB(box, result);
@@ -96,7 +99,7 @@ export class Quad<T extends { boundingBox: () => { v1: Vector2D, v2: Vector2D } 
 	}
 
 	getAll(result = new Set<T>()) {
-		for (const obj of this.points)
+		for (const obj of this.entity)
 			result.add(obj);
 
 		this.Iquad?.getAll(result);
@@ -108,7 +111,7 @@ export class Quad<T extends { boundingBox: () => { v1: Vector2D, v2: Vector2D } 
 	}
 
 	clear() {
-		this.points = [];
+		this.entity = [];
 		this.Iquad = null;
 		this.IIquad = null;
 		this.IIIquad = null;

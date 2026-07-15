@@ -1,6 +1,8 @@
 import type { Polygon } from "./types";
 import * as pc from "polygon-clipping";
 import earcut from "earcut";
+import { tri } from "./classes/triangle";
+import type { Quad } from "./classes/QuadTree";
 
 function toRing(poly: Polygon): [number, number][] {
 	const ring = poly.map(p => [p.x, p.y] as [number, number]);
@@ -20,13 +22,13 @@ function unionHoles(holes: Polygon[]): pc.Polygon[] {
 	return merged;
 }
 
-export function triangulate(outer: Polygon, holes: Polygon[] = []): Polygon[] {
+export function triangulate(outer: Polygon, triQuad: Quad<tri>, holes: Polygon[] = []): tri[] {
 	let freeSpace: pc.MultiPolygon = [[toRing(outer)]];
 	const merged = unionHoles(holes);
 	for (const poly of merged)
 		freeSpace = pc.difference(freeSpace, [poly]);
 
-	const triangles: Polygon[] = [];
+	const triangles: tri[] = [];
 	for (const polyRings of freeSpace) {
 		const outerRing = ringToPolygon(polyRings[0]);
 		const innerHoles = polyRings.slice(1).map(ringToPolygon);
@@ -42,10 +44,13 @@ export function triangulate(outer: Polygon, holes: Polygon[] = []): Polygon[] {
 
 		const indices = earcut(coords, holeIndices.length ? holeIndices : undefined);
 		for (let i = 0; i < indices.length; i += 3) {
-			triangles.push([indices[i], indices[i + 1], indices[i + 2]].map(idx => ({
+			const triangle = [indices[i], indices[i + 1], indices[i + 2]].map(idx => ({
 				x: coords[idx * 2],
 				y: coords[idx * 2 + 1],
-			})));
+			}))
+			const TRI = new tri(triangle[0], triangle[1], triangle[2])
+			triangles.push(TRI);
+			triQuad.insert(TRI);
 		}
 	}
 
