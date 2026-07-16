@@ -4,9 +4,9 @@ import type { GameObject } from "./classes/GameObject";
 import { triangulate } from "./navigationMesh";
 import { Quad } from "./classes/QuadTree";
 import { drawRandomPolygon } from "./shape/draw";
-import type { Polygon, Vector2D } from "./types";
-import { key } from "./utils";
+import type { Polygon } from "./types";
 import type { tri } from "./classes/triangle";
+import { vectorLerp } from "./utils";
 
 
 const fog = document.getElementById('fog') as HTMLCanvasElement;
@@ -44,7 +44,7 @@ const browns = [
 ];
 
 
-for (let i = 0; i < 300; i++) {
+for (let i = 0; i < 900; i++) {
 	const x = randomRange(worldSize.v1.x, worldSize.v2.x);
 	const y = randomRange(worldSize.v1.y, worldSize.v2.y);
 	const points = 3 + Math.floor(Math.random() * 14);
@@ -87,22 +87,26 @@ if (pattern) {
 
 ctx.translate(info.offsetX, info.offsetY);
 
-const doorObj = new Map<string, { isDraw: boolean, o: GameObject, doorTri?: tri[] }>();
-const doorTri: { edge: [Vector2D, Vector2D], tri: tri }[] = [];
-for (const o of [...staticQuad.getAll()].sort((a, b) => a.zIndex - b.zIndex)) {
+const staticObj = [...staticQuad.getAll()].sort((a, b) => a.zIndex - b.zIndex);
+const worldRect: Polygon = [worldSize.v1, { x: worldSize.v1.x, y: worldSize.v2.y }, worldSize.v2, { x: worldSize.v2.x, y: worldSize.v1.y },];
+
+const triangles = triangulate(worldRect, triQuad, staticObj.map(o => o.points));
+
+for (let i = 0; i < triangles.length; i++) {
+	const { v1, v2 } = triangles[i].boundingBox()
+	for (const t of triQuad.getBB({ v1: vectorLerp(v1, v2, 1.1), v2: vectorLerp(v2, v1, 1.1) }))
+		if (triangles[i].insert(t) === undefined) break;
+}
+
+for (const o of staticObj) {
 
 	const { v1, v2 } = o.boundingBox()
 	o.render(ctx, v1, v2)
-	const obj = { isDraw: false, o }
 	if (o.door?.length) {
 		for (let i = 0; i < o.door.length; i += 2) {
 
 			const a = o.door[i];
 			const b = o.door[i + 1];
-			doorObj.set(key(a), obj);
-			doorObj.set(key(b), obj);
-
-
 
 			const mid = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
 			const angle = Math.atan2(b.y - a.y, b.x - a.x);
@@ -115,18 +119,30 @@ for (const o of [...staticQuad.getAll()].sort((a, b) => a.zIndex - b.zIndex)) {
 
 		}
 
-		const inside = [...staticQuad.getBB(o.boundingBox())].filter(inner => inner !== o && o.zIndex < inner.zIndex && Entity.isRender(inner.boundingBox(), o.boundingBox()));
+		const dupDoor = [...o.door]
+		const inside = [...staticQuad.getBB(o.boundingBox())].filter(inner => o.zIndex < inner.zIndex && Entity.isRender(inner.boundingBox(), o.boundingBox()));
 		const triangles = triangulate(o.points, triQuad, inside.map(inner => inner.points))
+		rootLoop:
 		for (let i = 0; i < triangles.length; i++) {
-			for (let j = i + 1; j < triangles.length; j++) {
-				if (triangles[i].insert(triangles[j]) === undefined) break;
-			}
-			for (let d = 0; d < o.door.length; d += 2) {
-				if (triangles[i].hasEdge(o.door[d], o.door[d + 1])) {
-					doorTri.push({ edge: [o.door[d], o.door[d + 1]], tri: triangles[i] });
-					break;
+			for (let j = i + 1; j < triangles.length; j++)
+				if (triangles[i].insert(triangles[j]) === undefined) break rootLoop;
+			for (let d = dupDoor.length - 2; d >= 0; d -= 2) {
+				if (triangles[i].hasEdge(dupDoor[d], dupDoor[d + 1])) {
+					for (const t of triQuad.getLeafQuad(triangles[i].center)) {
+						if (t.hasEdge(dupDoor[d], dupDoor[d + 1])) {
+							if (t === triangles[i]) continue;
+							t.insert(triangles[i]);
+							dupDoor.splice(d, 2);
+							break;
+						}
+					}
 				}
 			}
+		}
+
+		if (dupDoor.length === o.door.length) {
+			for (let j = 0; j < triangles.length; j++)
+				triQuad.remove(triangles[j])
 		}
 
 	}
@@ -140,7 +156,7 @@ for (const o of [...staticQuad.getAll()].sort((a, b) => a.zIndex - b.zIndex)) {
 
 
 
-staticQuad.drawDebug(ctx, ({ v1, v2 }) => ({ v1, v2 }))
+triQuad.drawDebug(ctx, ({ v1, v2 }) => ({ v1, v2 }))
 
 ctx.beginPath()
 ctx.lineWidth = 20
@@ -148,24 +164,6 @@ ctx.rect(worldSize.v1.x, worldSize.v1.y, info.width, info.height)
 ctx.strokeStyle = "#663399"
 ctx.stroke()
 
-// --- Triangulate the world rect with objects as holes ---
-const worldRect: Polygon = [worldSize.v1, { x: worldSize.v1.x, y: worldSize.v2.y }, worldSize.v2, { x: worldSize.v2.x, y: worldSize.v1.y },];
-
-const triangles = triangulate(worldRect, triQuad, [...staticQuad.getAll()].map(o => o.points));
-
-
-rootLoop:
-for (let i = 0; i < triangles.length; i++) {
-	for (let j = i + 1; j < triangles.length; j++) {
-		if (triangles[i].insert(triangles[j]) === undefined) continue rootLoop;
-	}
-	for (let d = 0; d < doorTri.length; d++) {
-		if (triangles[i].hasEdge(doorTri[d].edge[0], doorTri[d].edge[1])) {
-			triangles[i].insert(doorTri[d].tri);
-			doorTri.splice(d, 1);
-		}
-	}
-}
 
 ctx.lineWidth = 0.5;
 ctx.strokeStyle = "black";
