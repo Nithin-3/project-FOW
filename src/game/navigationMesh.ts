@@ -56,7 +56,7 @@ export function triangulate(outer: Polygon, triQuad: Quad<tri>, holes: Polygon[]
 					? `${a.x},${a.y}-${b.x},${b.y}`
 					: `${b.x},${b.y}-${a.x},${a.y}`;
 				const existing = edgeMap.get(key);
-				if (existing) TRI.insert(existing);
+				if (existing) TRI.insert(existing, false);
 				edgeMap.set(key, TRI);
 			}
 

@@ -1,8 +1,9 @@
 import type { Vector2D } from "../types";
+import { distSq } from "../utils";
 import { Entity } from "./Entity";
 
 type Neighbor = {
-	dist: Vector2D;
+	dist: number;
 	neig: tri;
 }
 
@@ -10,6 +11,18 @@ export class tri extends Entity {
 	readonly vertex: [Vector2D, Vector2D, Vector2D];
 	readonly center: Vector2D;
 	neighbors: [Neighbor | null, Neighbor | null, Neighbor | null] = [null, null, null];
+
+	FROM: tri | null = null;
+	COST: number = Infinity;
+	DIST: number = Infinity;
+	PRIORITY: number = Infinity;
+
+	clear() {
+		this.FROM = null;
+		this.COST = Infinity;
+		this.DIST = Infinity;
+		this.PRIORITY = Infinity;
+	}
 
 	constructor(v1: Vector2D, v2: Vector2D, v3: Vector2D) {
 		super()
@@ -34,20 +47,19 @@ export class tri extends Entity {
 		return count === 2;
 	}
 
-	insert(n: tri): boolean | null | undefined {
+	insert(n: tri, check = true): boolean | null | undefined {
 		if (this === n || this.neighbors.some(ne => ne?.neig === n)) return true;
 		if (this.neighbors[0] && this.neighbors[1] && this.neighbors[2]) return undefined;
-		if (!this.sharesEdge(n)) return false;
+		if (check && !this.sharesEdge(n)) return false;
 
-		const dist: Vector2D = { x: n.center.x - this.center.x, y: n.center.y - this.center.y };
-		const rev: Vector2D = { x: -dist.x, y: -dist.y };
+		const dist = distSq(this.center, n.center)
 
 		for (let i = 0; i < this.neighbors.length; i++) {
 			if (!this.neighbors[i]) {
 				this.neighbors[i] = { dist, neig: n };
 				for (let j = 0; j < n.neighbors.length; j++) {
 					if (!n.neighbors[j]) {
-						n.neighbors[j] = { dist: rev, neig: this };
+						n.neighbors[j] = { dist, neig: this };
 						return true;
 					}
 				}
