@@ -110,6 +110,22 @@ export class Quad<T extends { boundingBox: () => { v1: Vector2D, v2: Vector2D } 
 		return result;
 	}
 
+	remove(obj: T): boolean {
+		const idx = this.entity.indexOf(obj);
+		if (idx !== -1) {
+			this.entity.splice(idx, 1);
+			return true;
+		}
+		if (this.Iquad !== null) {
+			const box = obj.boundingBox();
+			if (this.Iquad.contains(box)) return this.Iquad.remove(obj);
+			if (this.IIquad!.contains(box)) return this.IIquad!.remove(obj);
+			if (this.IIIquad!.contains(box)) return this.IIIquad!.remove(obj);
+			if (this.IVquad!.contains(box)) return this.IVquad!.remove(obj);
+		}
+		return false;
+	}
+
 	clear() {
 		this.entity = [];
 		this.Iquad = null;
