@@ -43,12 +43,23 @@ export function triangulate(outer: Polygon, triQuad: Quad<tri>, holes: Polygon[]
 		}
 
 		const indices = earcut(coords, holeIndices.length ? holeIndices : undefined);
+		const edgeMap = new Map<string, tri>();
 		for (let i = 0; i < indices.length; i += 3) {
-			const triangle = [indices[i], indices[i + 1], indices[i + 2]].map(idx => ({
-				x: coords[idx * 2],
-				y: coords[idx * 2 + 1],
-			}))
-			const TRI = new tri(triangle[0], triangle[1], triangle[2])
+			const idxs = [indices[i], indices[i + 1], indices[i + 2]];
+			const verts = idxs.map(idx => ({ x: coords[idx * 2], y: coords[idx * 2 + 1] }));
+			const TRI = new tri(verts[0], verts[1], verts[2]);
+
+			for (let e = 0; e < 3; e++) {
+				const a = verts[e];
+				const b = verts[(e + 1) % 3];
+				const key = a.x < b.x || (a.x === b.x && a.y < b.y)
+					? `${a.x},${a.y}-${b.x},${b.y}`
+					: `${b.x},${b.y}-${a.x},${a.y}`;
+				const existing = edgeMap.get(key);
+				if (existing) TRI.insert(existing);
+				edgeMap.set(key, TRI);
+			}
+
 			triangles.push(TRI);
 			triQuad.insert(TRI);
 		}

@@ -90,13 +90,7 @@ ctx.translate(info.offsetX, info.offsetY);
 const staticObj = [...staticQuad.getAll()].sort((a, b) => a.zIndex - b.zIndex);
 const worldRect: Polygon = [worldSize.v1, { x: worldSize.v1.x, y: worldSize.v2.y }, worldSize.v2, { x: worldSize.v2.x, y: worldSize.v1.y },];
 
-const triangles = triangulate(worldRect, triQuad, staticObj.map(o => o.points));
-
-for (let i = 0; i < triangles.length; i++) {
-	const { v1, v2 } = triangles[i].boundingBox()
-	for (const t of triQuad.getBB({ v1: vectorLerp(v1, v2, 1.1), v2: vectorLerp(v2, v1, 1.1) }))
-		if (triangles[i].insert(t) === undefined) break;
-}
+triangulate(worldRect, triQuad, staticObj.map(o => o.points));
 
 for (const o of staticObj) {
 
@@ -122,18 +116,20 @@ for (const o of staticObj) {
 		const dupDoor = [...o.door]
 		const inside = [...staticQuad.getBB(o.boundingBox())].filter(inner => o.zIndex < inner.zIndex && Entity.isRender(inner.boundingBox(), o.boundingBox()));
 		const triangles = triangulate(o.points, triQuad, inside.map(inner => inner.points))
-		rootLoop:
 		for (let i = 0; i < triangles.length; i++) {
-			for (let j = i + 1; j < triangles.length; j++)
-				if (triangles[i].insert(triangles[j]) === undefined) break rootLoop;
+			let candidates: Set<tri> | null = null;
 			for (let d = dupDoor.length - 2; d >= 0; d -= 2) {
 				if (triangles[i].hasEdge(dupDoor[d], dupDoor[d + 1])) {
-					for (const t of triQuad.getLeafQuad(triangles[i].center)) {
-						if (t.hasEdge(dupDoor[d], dupDoor[d + 1])) {
-							if (t === triangles[i]) continue;
-							t.insert(triangles[i]);
-							dupDoor.splice(d, 2);
-							break;
+					if (!candidates) {
+						const { v1, v2 } = triangles[i].boundingBox()
+						candidates = triQuad.getBB({ v1: vectorLerp(v1, v2, -0.1), v2: vectorLerp(v2, v1, -0.1) });
+					}
+					for (const t of candidates) {
+						if (t.hasEdge(dupDoor[d], dupDoor[d + 1]) && t !== triangles[i]) {
+							if (t.insert(triangles[i])) {
+								dupDoor.splice(d, 2);
+								break;
+							}
 						}
 					}
 				}

@@ -45,7 +45,7 @@ export class Camera extends Entity {
 	}
 
 	moveCamera(vect: Vector2D) {
-		this.cam.loc = vectorLerp(this.cam.loc, addVectors(this.cam.loc, vect), 0.1);
+		this.cam.loc = vectorLerp(this.cam.loc, addVectors(this.cam.loc, vect), 0.05);
 		this._updateBounds();
 		this.render()
 	}

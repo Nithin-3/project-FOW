@@ -1,13 +1,15 @@
 import type { Vector2D } from "../types";
 import { Entity } from "./Entity";
 
+type Neighbor = {
+	dist: Vector2D;
+	neig: tri;
+}
 
 export class tri extends Entity {
 	readonly vertex: [Vector2D, Vector2D, Vector2D];
 	readonly center: Vector2D;
-	neighbor0: tri | null = null;
-	neighbor1: tri | null = null;
-	neighbor2: tri | null = null;
+	neighbors: [Neighbor | null, Neighbor | null, Neighbor | null] = [null, null, null];
 
 	constructor(v1: Vector2D, v2: Vector2D, v3: Vector2D) {
 		super()
@@ -33,29 +35,25 @@ export class tri extends Entity {
 	}
 
 	insert(n: tri): boolean | null | undefined {
-		if (this === n || this.neighbor0 === n || this.neighbor1 === n || this.neighbor2 === n) return true;
-		if (this.neighbor0 && this.neighbor1 && this.neighbor2) return undefined;
+		if (this === n || this.neighbors.some(ne => ne?.neig === n)) return true;
+		if (this.neighbors[0] && this.neighbors[1] && this.neighbors[2]) return undefined;
 		if (!this.sharesEdge(n)) return false;
 
-		if (!this.neighbor0) {
-			this.neighbor0 = n;
-			if (!n.neighbor0) { n.neighbor0 = this; return true; }
-			if (!n.neighbor1) { n.neighbor1 = this; return true; }
-			if (!n.neighbor2) { n.neighbor2 = this; return true; }
-		}
-		if (!this.neighbor1) {
-			this.neighbor1 = n;
-			if (!n.neighbor0) { n.neighbor0 = this; return true; }
-			if (!n.neighbor1) { n.neighbor1 = this; return true; }
-			if (!n.neighbor2) { n.neighbor2 = this; return true; }
-		}
-		if (!this.neighbor2) {
-			this.neighbor2 = n;
-			if (!n.neighbor0) { n.neighbor0 = this; return true; }
-			if (!n.neighbor1) { n.neighbor1 = this; return true; }
-			if (!n.neighbor2) { n.neighbor2 = this; return true; }
-		}
+		const dist: Vector2D = { x: n.center.x - this.center.x, y: n.center.y - this.center.y };
+		const rev: Vector2D = { x: -dist.x, y: -dist.y };
 
+		for (let i = 0; i < this.neighbors.length; i++) {
+			if (!this.neighbors[i]) {
+				this.neighbors[i] = { dist, neig: n };
+				for (let j = 0; j < n.neighbors.length; j++) {
+					if (!n.neighbors[j]) {
+						n.neighbors[j] = { dist: rev, neig: this };
+						return true;
+					}
+				}
+				return true;
+			}
+		}
 		return null;
 	}
 

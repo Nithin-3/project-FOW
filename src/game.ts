@@ -76,7 +76,7 @@ hud.onclick = (e) => {
 				worldCtx.stroke();
 			};
 			drawTri(v);
-			[v.neighbor0, v.neighbor1, v.neighbor2].forEach(n => n && drawTri(n));
+			v.neighbors.forEach(ne => ne && drawTri(ne.neig));
 		}
 
 	})
