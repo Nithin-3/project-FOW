@@ -3,6 +3,8 @@ import { player } from "./game/classes/player";
 import type { Vector2D } from "./game/types";
 import { multiplyVector, normalizeVector, subtractVectors, } from "./game/utils";
 import { pointInPolygon } from "./game/tools";
+import type { tri } from "./game/classes/triangle";
+import { dijkstra } from "./game/A*";
 
 
 let moveCam: Vector2D = { x: 0, y: 0 };
@@ -35,7 +37,10 @@ document.addEventListener("keyup", (event) => {
 
 
 const pl = new player({ x: 0, y: 0 })
-hud.onclick = (e) => {
+const findPath: [tri | null, tri | null] = [null, null]
+let pathSource: Vector2D = { x: 0, y: 0 };
+let pathTarget: Vector2D = { x: 0, y: 0 };
+hud.onclick = async (e) => {
 	const x = e.offsetX;
 	const y = e.offsetY;
 	const loc = cam.screen2world({ x, y })
@@ -44,24 +49,22 @@ hud.onclick = (e) => {
 	const v2 = cam.world2screen(pl.boundingBox().v2)
 	pl.render(worldCtx, v1, v2)
 
-	// const box = pl.shadow.worldBox(loc);
-	// const origin = cam.world2screen(box.v1);
-	// const end = cam.world2screen(box.v2);
-	//
-	// const width = end.x - origin.x;
-	// const height = end.y - origin.y;
-	//
 	fogCtx.clearRect(0, 0, world.width, world.height);
-	// fogCtx.fillStyle = "rgba(0,0,0,0.8)";
-	// fogCtx.fillRect(0, 0, world.width, world.height);
-	// fogCtx.fillStyle = "rgba(0,0,0,0.8)";
-	// fogCtx.fillRect(0, 0, world.width, world.height);
 	maskCtx.globalCompositeOperation = "lighter";
 	maskCtx.drawImage(pl.shadow.texture, 0, 0);
-	// fogCtx.globalCompositeOperation = "source-over";
 
 	triQuad.getLeafQuad(loc).forEach(v => {
 		if (pointInPolygon(loc, v.vertex)) {
+			if (e.ctrlKey) {
+				if (!findPath[0]) {
+					findPath[0] = v;
+					pathSource = loc;
+				} else {
+					findPath[1] = v;
+					pathTarget = loc;
+				}
+			}
+
 			const drawTri = (t: typeof v) => {
 				const a = cam.world2screen(t.vertex[0]);
 				const b = cam.world2screen(t.vertex[1]);
@@ -78,8 +81,30 @@ hud.onclick = (e) => {
 			drawTri(v);
 			v.neighbors.forEach(ne => ne && drawTri(ne.neig));
 		}
-
 	})
+
+	if (e.ctrlKey && findPath[0] && findPath[1]) {
+		if (findPath[0] !== findPath[1]) {
+			const path = await dijkstra(findPath[0], findPath[1], pathSource, pathTarget);
+			path.forEach(t => {
+				const a = cam.world2screen(t.vertex[0]);
+				const b = cam.world2screen(t.vertex[1]);
+				const c = cam.world2screen(t.vertex[2]);
+				worldCtx.beginPath();
+				worldCtx.moveTo(a.x, a.y);
+				worldCtx.lineTo(b.x, b.y);
+				worldCtx.lineTo(c.x, c.y);
+				worldCtx.closePath();
+				worldCtx.fillStyle = "rgba(255,255,0,0.3)";
+				worldCtx.fill();
+				worldCtx.strokeStyle = "yellow";
+				worldCtx.lineWidth = 2;
+				worldCtx.stroke();
+			});
+		}
+		findPath[0] = null;
+		findPath[1] = null;
+	}
 }
 
 hud.onmousemove = (e) => {

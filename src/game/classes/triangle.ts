@@ -1,5 +1,5 @@
 import type { Vector2D } from "../types";
-import { distSq } from "../utils";
+import { distSq, cross } from "../utils";
 import { Entity } from "./Entity";
 
 type Neighbor = {
@@ -10,19 +10,14 @@ type Neighbor = {
 export class tri extends Entity {
 	readonly vertex: [Vector2D, Vector2D, Vector2D];
 	readonly center: Vector2D;
-	neighbors: [Neighbor | null, Neighbor | null, Neighbor | null] = [null, null, null];
+	neighbors: Neighbor[] = [];
 
+	weight: number = 1;
 	FROM: tri | null = null;
 	COST: number = Infinity;
 	DIST: number = Infinity;
 	PRIORITY: number = Infinity;
-
-	clear() {
-		this.FROM = null;
-		this.COST = Infinity;
-		this.DIST = Infinity;
-		this.PRIORITY = Infinity;
-	}
+	timeStamp: number = 0;
 
 	constructor(v1: Vector2D, v2: Vector2D, v3: Vector2D) {
 		super()
@@ -39,42 +34,33 @@ export class tri extends Entity {
 		}
 	}
 
-	private sharesEdge(n: tri): boolean {
+	private sharesEdge(n: tri, eps = 1e-6): boolean {
 		let count = 0;
 		for (const a of this.vertex)
 			for (const b of n.vertex)
-				if (a.x === b.x && a.y === b.y) count++;
+				if (Math.abs(a.x - b.x) <= eps && Math.abs(a.y - b.y) <= eps) count++;
 		return count === 2;
 	}
 
-	insert(n: tri, check = true): boolean | null | undefined {
-		if (this === n || this.neighbors.some(ne => ne?.neig === n)) return true;
-		if (this.neighbors[0] && this.neighbors[1] && this.neighbors[2]) return undefined;
+	insert(n: tri, check = true): boolean {
+		if (this === n || this.neighbors.some(ne => ne.neig === n)) return true;
 		if (check && !this.sharesEdge(n)) return false;
 
 		const dist = distSq(this.center, n.center)
-
-		for (let i = 0; i < this.neighbors.length; i++) {
-			if (!this.neighbors[i]) {
-				this.neighbors[i] = { dist, neig: n };
-				for (let j = 0; j < n.neighbors.length; j++) {
-					if (!n.neighbors[j]) {
-						n.neighbors[j] = { dist, neig: this };
-						return true;
-					}
-				}
-				return true;
-			}
-		}
-		return null;
+		this.neighbors.push({ dist, neig: n });
+		n.neighbors.push({ dist, neig: this });
+		return true;
 	}
 
-	hasEdge(v1: Vector2D, v2: Vector2D): boolean {
-		let foundV1 = false, foundV2 = false;
-		for (const v of this.vertex) {
-			if (v.x === v1.x && v.y === v1.y) foundV1 = true;
-			if (v.x === v2.x && v.y === v2.y) foundV2 = true;
+	hasEdge(v1: Vector2D, v2: Vector2D, eps = 1e-6): boolean {
+		for (let i = 0; i < 3; i++) {
+			const a = this.vertex[i];
+			const b = this.vertex[(i + 1) % 3];
+			if (Math.abs(cross(a, b, v1)) > eps || Math.abs(cross(a, b, v2)) > eps) continue;
+			const overlapX = Math.max(Math.min(a.x, b.x), Math.min(v1.x, v2.x)) <= Math.min(Math.max(a.x, b.x), Math.max(v1.x, v2.x)) + eps;
+			const overlapY = Math.max(Math.min(a.y, b.y), Math.min(v1.y, v2.y)) <= Math.min(Math.max(a.y, b.y), Math.max(v1.y, v2.y)) + eps;
+			if (overlapX && overlapY) return true;
 		}
-		return foundV1 && foundV2;
+		return false;
 	}
 }
