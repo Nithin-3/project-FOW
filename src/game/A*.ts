@@ -2,7 +2,6 @@ import { ordQue } from "./classes/orderedQueue";
 import type { Accessors } from "./classes/orderedQueue";
 import type { tri } from "./classes/triangle";
 import type { Vector2D } from "./types";
-import { distancePointToLine } from "./tools";
 import { distSq } from "./utils";
 
 type BackState = {
@@ -54,6 +53,10 @@ export const dijkstra = async (from: tri, to: tri, source: Vector2D, target: Vec
 	from.timeStamp = timeStamp;
 	toBack.timeStamp = timeStamp;
 
+	const dx = target.x - source.x;
+	const dy = target.y - source.y;
+	const lineLen = Math.sqrt(dx * dx + dy * dy);
+
 	const fQue = new ordQue(timeStamp);
 	const bQue = new ordQue(timeStamp, backAcc);
 	fQue.insert(from);
@@ -78,7 +81,9 @@ export const dijkstra = async (from: tri, to: tri, source: Vector2D, target: Vec
 			if (nxt.timeStamp >= timeStamp)
 				if (newCost >= nxt.COST) continue;
 			nxt.COST = newCost;
-			nxt.DIST = distSq(nxt.center, target) * (1 + distancePointToLine(source, target, nxt.center));
+			const pdx = nxt.center.x - source.x;
+		const pdy = nxt.center.y - source.y;
+		nxt.DIST = distSq(nxt.center, target) * (1 + Math.abs(dx * pdy - dy * pdx) / lineLen);
 			nxt.FROM = fTravel.node;
 			nxt.timeStamp = timeStamp;
 			fQue.insert(nxt);
@@ -98,7 +103,9 @@ export const dijkstra = async (from: tri, to: tri, source: Vector2D, target: Vec
 			if (nxtBack.timeStamp >= timeStamp)
 				if (newCost >= nxtBack.COST) continue;
 			nxtBack.COST = newCost;
-			nxtBack.DIST = distSq(nxt.center, source) * (1 + distancePointToLine(source, target, nxt.center));
+			const bpdx = nxt.center.x - source.x;
+		const bpdy = nxt.center.y - source.y;
+		nxtBack.DIST = distSq(nxt.center, source) * (1 + Math.abs(dx * bpdy - dy * bpdx) / lineLen);
 			nxtBack.FROM = bTravel.node;
 			nxtBack.timeStamp = timeStamp;
 			bQue.insert(nxt);
