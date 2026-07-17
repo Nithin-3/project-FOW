@@ -13,6 +13,7 @@ export class tri extends Entity {
 	neighbors: Neighbor[] = [];
 
 	weight: number = 1;
+	regionId: number = -1;
 	FROM: tri | null = null;
 	COST: number = Infinity;
 	DIST: number = Infinity;

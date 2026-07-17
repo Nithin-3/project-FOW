@@ -6,6 +6,12 @@ export function distSq(a: Vector2D, b: Vector2D): number {
 	return dx * dx + dy * dy;
 }
 
+export function fastDist(a: Vector2D, b: Vector2D): number {
+	const dx = Math.abs(a.x - b.x);
+	const dy = Math.abs(a.y - b.y);
+	return Math.max(dx, dy) + Math.min(dx, dy) * 0.4;
+}
+
 export function vectorLength(v: Vector2D): number {
 	return Math.sqrt(v.x * v.x + v.y * v.y);
 }

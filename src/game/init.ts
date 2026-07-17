@@ -153,13 +153,48 @@ for (const o of staticObj) {
 
 
 
-triQuad.drawDebug(ctx, ({ v1, v2 }) => ({ v1, v2 }))
+// triQuad.drawDebug(ctx, ({ v1, v2 }) => ({ v1, v2 }))
 
 ctx.beginPath()
 ctx.lineWidth = 20
 ctx.rect(worldSize.v1.x, worldSize.v1.y, info.width, info.height)
 ctx.strokeStyle = "#663399"
 ctx.stroke()
+
+
+let nextRegion = 0;
+for (const tri of triQuad.getAll()) {
+	if (tri.regionId >= 0) continue;
+	const stack = [tri];
+	tri.regionId = nextRegion;
+	while (stack.length) {
+		const t = stack.pop()!;
+		for (const { neig } of t.neighbors) {
+			if (neig.regionId < 0) {
+				neig.regionId = nextRegion;
+				stack.push(neig);
+			}
+		}
+	}
+	nextRegion++;
+}
+
+ctx.lineWidth = 5;
+ctx.strokeStyle = "#ff4444";
+for (const tri of triQuad.getAll()) {
+	for (let i = 0; i < 3; i++) {
+		const a = tri.vertex[i];
+		const b = tri.vertex[(i + 1) % 3];
+		const shared = tri.neighbors.some(n => n.neig.hasEdge(a, b));
+		if (!shared) {
+			ctx.beginPath();
+			ctx.moveTo(a.x, a.y);
+			ctx.lineTo(b.x, b.y);
+			ctx.stroke();
+		}
+	}
+}
+
 
 
 export let edge: number = 0;
