@@ -18,7 +18,7 @@ export const worldCtx = world.getContext('2d')!;
 export const fogCtx = fog.getContext('2d')!;
 export const hudCtx = hud.getContext('2d')!;
 
-const cameraWidth = 950
+const cameraWidth = 1000
 
 const worldSize = { v1: { x: -4100, y: -4100 }, v2: { x: 2100, y: 2100 } };
 const getWorldInfo = (world: any) => ({ width: world.v2.x - world.v1.x, height: world.v2.y - world.v1.y, offsetX: -world.v1.x, offsetY: -world.v1.y, });
@@ -44,7 +44,7 @@ const browns = [
 ];
 
 
-for (let i = 0; i < 900; i++) {
+for (let i = 0; i < 600; i++) {
 	const x = randomRange(worldSize.v1.x, worldSize.v2.x);
 	const y = randomRange(worldSize.v1.y, worldSize.v2.y);
 	const points = 3 + Math.floor(Math.random() * 14);
@@ -127,6 +127,7 @@ for (const o of staticObj) {
 					for (const t of candidates) {
 						if (t.hasEdge(dupDoor[d], dupDoor[d + 1]) && t !== triangles[i]) {
 							if (t.insert(triangles[i])) {
+								triangles[i].weight = 4
 								dupDoor.splice(d, 2);
 								break;
 							}
@@ -159,19 +160,6 @@ ctx.lineWidth = 20
 ctx.rect(worldSize.v1.x, worldSize.v1.y, info.width, info.height)
 ctx.strokeStyle = "#663399"
 ctx.stroke()
-
-
-ctx.lineWidth = 0.5;
-ctx.strokeStyle = "black";
-for (const tri of triQuad.getAll()) {
-	ctx.beginPath();
-	ctx.moveTo(tri.vertex[0].x, tri.vertex[0].y);
-	for (let i = 1; i < tri.vertex.length; i++) {
-		ctx.lineTo(tri.vertex[i].x, tri.vertex[i].y);
-	}
-	ctx.closePath();
-	ctx.stroke();
-}
 
 
 export let edge: number = 0;
