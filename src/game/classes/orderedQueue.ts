@@ -6,53 +6,39 @@ type Entry = { node: tri; cost: number; dist: number; visitor: Vector2D };
 export class ordQue {
 	private queue: Entry[] = [];
 	private timeStamp: number;
+	private forward: boolean;
 
-	constructor(timeStamp: number) {
+
+	constructor(timeStamp: number, forward: boolean) {
 		this.timeStamp = timeStamp;
+		this.forward = forward;
 	}
 
 	private pri(e: Entry): number {
-		return e.cost + e.dist * 1.3;
+		return e.cost + e.dist;
 	}
 
 	insert(node: tri, visitor: Vector2D): void {
-		const pri = node.COST + node.DIST * 1.3;
-		if (node.timeStamp >= this.timeStamp)
-			if (pri >= node.PRIORITY) return;
-		node.PRIORITY = pri;
-
-		const e: Entry = { node, cost: node.COST, dist: node.DIST, visitor };
-		this.queue.push(e);
-
-		let i = this.queue.length - 1;
-		while (i > 0) {
-			const p = (i - 1) >> 1;
-			if (this.pri(this.queue[p]) <= this.pri(e)) break;
-			this.queue[i] = this.queue[p];
-			i = p;
+		const cost = this.forward ? node.COST_F : node.COST_B;
+		const dist = this.forward ? node.DIST_F : node.DIST_B;
+		const pri = cost + dist;
+		const ts = this.forward ? node.timeStamp_F : node.timeStamp_B;
+		if (ts === this.timeStamp) {
+			const curPri = this.forward ? node.PRIORITY_F : node.PRIORITY_B;
+			if (pri >= curPri) return;
 		}
-		this.queue[i] = e;
+		if (this.forward) node.PRIORITY_F = pri; else node.PRIORITY_B = pri;
+
+		const e: Entry = { node, cost, dist, visitor };
+		this.queue.push(e);
+		this.queue.sort((a, b) => this.pri(a) - this.pri(b))
 	}
 
 	pop(): Entry | undefined {
 		while (this.queue.length) {
-			const e = this.queue[0];
-			const last = this.queue.pop()!;
-			if (this.queue.length) {
-				let i = 0;
-				while (true) {
-					const left = i * 2 + 1;
-					if (left >= this.queue.length) break;
-					const right = left + 1;
-					let child = left;
-					if (right < this.queue.length && this.pri(this.queue[right]) < this.pri(this.queue[left])) child = right;
-					if (this.pri(last) <= this.pri(this.queue[child])) break;
-					this.queue[i] = this.queue[child];
-					i = child;
-				}
-				this.queue[i] = last;
-			}
-			if (e.cost + e.dist * 1.3 === e.node.PRIORITY) return e;
+			const e = this.queue.shift()!
+			const nodePri = this.forward ? e.node.PRIORITY_F : e.node.PRIORITY_B;
+			if (e.cost + e.dist === nodePri) return e;
 		}
 		return undefined;
 	}
