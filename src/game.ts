@@ -1,4 +1,4 @@
-import { cam, hud, hudCtx, world, worldCtx, edge, fogCtx, maskCtx, maskLayer, triQuad } from "./game/init";
+import { cam, hud, hudCtx, world, worldCtx, edge, fogCtx, maskCtx, triQuad, setCameraWidth } from "./game/init";
 import { player } from "./game/classes/player";
 import type { Vector2D } from "./game/types";
 import { multiplyVector, normalizeVector, subtractVectors, } from "./game/utils";
@@ -134,6 +134,11 @@ hud.onmousemove = (e) => {
 };
 
 hud.onmouseleave = () => moveCam = { x: 0, y: 0 };
+
+hud.onwheel = (e) => {
+	const factor = e.deltaY > 0 ? 1.1 : 0.9;
+	setCameraWidth(cam.texture.width * factor);
+};
 
 function drawDebug(ctx: CanvasRenderingContext2D, items: Record<string, string | number>, x = 10, y = 10, lineH = 15) {
 	ctx.font = "10px sans-serif"

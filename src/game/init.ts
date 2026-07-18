@@ -4,7 +4,7 @@ import type { GameObject } from "./classes/GameObject";
 import { triangulate } from "./navigationMesh";
 import { Quad } from "./classes/QuadTree";
 import { drawRandomPolygon } from "./shape/draw";
-import type { Polygon } from "./types";
+import type { Polygon, Vector2D } from "./types";
 import type { tri } from "./classes/triangle";
 import { vectorLerp } from "./utils";
 
@@ -18,13 +18,17 @@ export const worldCtx = world.getContext('2d')!;
 export const fogCtx = fog.getContext('2d')!;
 export const hudCtx = hud.getContext('2d')!;
 
-const cameraWidth = 6000
+let cameraWidth = 1000
+export const setCameraWidth = (w: number) => {
+	cameraWidth = w;
+	cam.updateSize(cameraWidth, getHeight(cameraWidth));
+};
 
 const worldSize = { v1: { x: -4100, y: -4100 }, v2: { x: 2100, y: 2100 } };
 const getWorldInfo = (world: any) => ({ width: world.v2.x - world.v1.x, height: world.v2.y - world.v1.y, offsetX: -world.v1.x, offsetY: -world.v1.y, });
 
 
-const getHeight = (width: number): number => (width / (window.innerWidth / window.innerHeight));
+export const getHeight = (width: number): number => (width / (window.innerWidth / window.innerHeight));
 
 export const staticQuad = new Quad<GameObject>(worldSize, 20)
 export const triQuad = new Quad<tri>(worldSize, 50)
@@ -161,16 +165,26 @@ ctx.strokeStyle = "#663399"
 ctx.stroke()
 
 
+const drawArrow = (ctx: OffscreenCanvasRenderingContext2D, from: Vector2D, to: Vector2D, size = 20) => {
+	const angle = Math.atan2(to.y - from.y, to.x - from.x);
+	ctx.beginPath();
+	ctx.moveTo(from.x, from.y);
+	ctx.lineTo(to.x, to.y);
+	ctx.stroke();
+	ctx.beginPath();
+	ctx.moveTo(to.x, to.y);
+	ctx.lineTo(to.x - size * Math.cos(angle - Math.PI / 6), to.y - size * Math.sin(angle - Math.PI / 6));
+	ctx.lineTo(to.x - size * Math.cos(angle + Math.PI / 6), to.y - size * Math.sin(angle + Math.PI / 6));
+	ctx.closePath();
+	ctx.stroke();
+};
+
 ctx.lineWidth = 5;
 ctx.strokeStyle = "#000000";
+ctx.fillStyle = "#000000";
 for (const tri of triQuad.getAll()) {
-
 	for (let n = 0; n < tri.neighbors.length; n++) {
-
-		ctx.beginPath();
-		ctx.moveTo(tri.center.x, tri.center.y);
-		ctx.lineTo(tri.neighbors[n].neig.center.x, tri.neighbors[n].neig.center.y);
-		ctx.stroke();
+		drawArrow(ctx, tri.center, tri.neighbors[n].neig.center);
 	}
 }
 
