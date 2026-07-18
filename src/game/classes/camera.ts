@@ -60,6 +60,8 @@ export class Camera extends Entity {
 		this.cam.width = width;
 		this.cam.height = height;
 		this._updateBounds();
+		this._scaleX = this.SW / width;
+		this._scaleY = this.SH / height;
 		if (this.texture) {
 			this.texture.width = width;
 			this.texture.height = height;
