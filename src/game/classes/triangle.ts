@@ -13,7 +13,6 @@ export class tri extends Entity {
 	neighbors: Neighbor[] = [];
 
 	weight: number = 1;
-	regionId: number = -1;
 	FROM: tri | null = null;
 	COST: number = Infinity;
 	DIST: number = Infinity;
@@ -35,12 +34,53 @@ export class tri extends Entity {
 		}
 	}
 
+	private sameEdge(
+		a1: Vector2D,
+		a2: Vector2D,
+		b1: Vector2D,
+		b2: Vector2D,
+		eps: number
+	): boolean {
+
+		// cross product
+		const cross = (p: Vector2D, q: Vector2D, r: Vector2D) =>
+			(q.x - p.x) * (r.y - p.y) -
+			(q.y - p.y) * (r.x - p.x);
+
+		// both endpoints of B lie on A's line
+		if (
+			Math.abs(cross(a1, a2, b1)) > eps ||
+			Math.abs(cross(a1, a2, b2)) > eps
+		)
+			return false;
+
+		// project onto dominant axis
+		const useX = Math.abs(a2.x - a1.x) >= Math.abs(a2.y - a1.y);
+
+		const aMin = Math.min(useX ? a1.x : a1.y, useX ? a2.x : a2.y);
+		const aMax = Math.max(useX ? a1.x : a1.y, useX ? a2.x : a2.y);
+
+		const bMin = Math.min(useX ? b1.x : b1.y, useX ? b2.x : b2.y);
+		const bMax = Math.max(useX ? b1.x : b1.y, useX ? b2.x : b2.y);
+
+		// overlap length
+		const overlap = Math.min(aMax, bMax) - Math.max(aMin, bMin);
+
+		return overlap > eps;
+	}
+
 	private sharesEdge(n: tri, eps = 1e-6): boolean {
-		let count = 0;
-		for (const a of this.vertex)
-			for (const b of n.vertex)
-				if (Math.abs(a.x - b.x) <= eps && Math.abs(a.y - b.y) <= eps) count++;
-		return count === 2;
+		for (let i = 0; i < 3; i++) {
+			const a1 = this.vertex[i];
+			const a2 = this.vertex[(i + 1) % 3];
+			for (let j = 0; j < 3; j++) {
+				const b1 = n.vertex[j];
+				const b2 = n.vertex[(j + 1) % 3];
+				if (this.sameEdge(a1, a2, b1, b2, eps))
+					return true;
+			}
+		}
+		return false;
 	}
 
 	insert(n: tri, check = true): boolean {

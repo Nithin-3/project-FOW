@@ -85,7 +85,7 @@ hud.onclick = async (e) => {
 
 	if (e.ctrlKey && findPath[0] && findPath[1]) {
 		if (findPath[0] !== findPath[1]) {
-			const path = await dijkstra(findPath[0], findPath[1], pathSource, pathTarget);
+			const path = await dijkstra(findPath[0], findPath[1], pathSource, pathTarget, worldCtx, v => cam.world2screen(v));
 			path.forEach(t => {
 				const a = cam.world2screen(t.vertex[0]);
 				const b = cam.world2screen(t.vertex[1]);

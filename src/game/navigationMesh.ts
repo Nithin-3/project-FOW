@@ -43,36 +43,41 @@ export function triangulate(outer: Polygon, triQuad: Quad<tri>, holes: Polygon[]
 		}
 
 		const indices = earcut(coords, holeIndices.length ? holeIndices : undefined);
-		const edgeBuckets = new Map<number, { a: Vector2D; b: Vector2D; tri: tri }[]>();
+		const buckets = new Set<tri>();
 		for (let i = 0; i < indices.length; i += 3) {
 			const idxs = [indices[i], indices[i + 1], indices[i + 2]];
 			const verts = idxs.map(idx => ({ x: coords[idx * 2], y: coords[idx * 2 + 1] }));
 			const TRI = new tri(verts[0], verts[1], verts[2]);
 
-			for (let e = 0; e < 3; e++) {
-				const a = verts[e];
-				const b = verts[(e + 1) % 3];
+			buckets.forEach(t=>TRI.insert(t))
+			buckets.add(TRI)
 
-				let dx = b.x - a.x;
-				let dy = b.y - a.y;
-				if (dx < 0 || (dx === 0 && dy < 0)) { dx = -dx; dy = -dy; }
-				const key = Math.round(dx / 100) * 1000000 + Math.round(dy / 100) * 1000 + Math.round((a.x + b.x) / 400) * 100 + Math.round((a.y + b.y) / 400);
+			
 
-				const eps = 1e-6;
-				const bucket = edgeBuckets.get(key);
-				if (bucket) {
-					for (const entry of bucket) {
-						if (Math.abs((entry.b.x - entry.a.x) * (a.y - entry.a.y) - (entry.b.y - entry.a.y) * (a.x - entry.a.x)) > eps) continue;
-						if (Math.abs((entry.b.x - entry.a.x) * (b.y - entry.a.y) - (entry.b.y - entry.a.y) * (b.x - entry.a.x)) > eps) continue;
-						const overlapX = Math.max(Math.min(entry.a.x, entry.b.x), Math.min(a.x, b.x)) < Math.min(Math.max(entry.a.x, entry.b.x), Math.max(a.x, b.x)) - eps;
-						const overlapY = Math.max(Math.min(entry.a.y, entry.b.y), Math.min(a.y, b.y)) < Math.min(Math.max(entry.a.y, entry.b.y), Math.max(a.y, b.y)) - eps;
-						if (overlapX && overlapY) TRI.insert(entry.tri, false);
-					}
-				} else {
-					edgeBuckets.set(key, []);
-				}
-				edgeBuckets.get(key)!.push({ a, b, tri: TRI });
-			}
+			// for (let e = 0; e < 3; e++) {
+			// 	const a = verts[e];
+			// 	const b = verts[(e + 1) % 3];
+			//
+			// 	let dx = b.x - a.x;
+			// 	let dy = b.y - a.y;
+			// 	if (dx < 0 || (dx === 0 && dy < 0)) { dx = -dx; dy = -dy; }
+			// 	const key = Math.round(dx / 100) * 1000000 + Math.round(dy / 100) * 1000 + Math.round((a.x + b.x) / 400) * 100 + Math.round((a.y + b.y) / 400);
+			//
+			// 	const bucket = edgeBuckets.get(key);
+			// 	if (bucket) {
+			// 		const eps = 1e-6;
+			// 		for (const entry of bucket) {
+			// 			let shared = 0;
+			// 			for (const v1 of [entry.a, entry.b])
+			// 				for (const v2 of [a, b])
+			// 					if (Math.abs(v1.x - v2.x) <= eps && Math.abs(v1.y - v2.y) <= eps) shared++;
+			// 			if (shared >= 2) TRI.insert(entry.tri, false);
+			// 		}
+			// 	} else {
+			// 		edgeBuckets.set(key, []);
+			// 	}
+			// 	edgeBuckets.get(key)!.push({ a, b, tri: TRI });
+			// }
 
 			triangles.push(TRI);
 			triQuad.insert(TRI);

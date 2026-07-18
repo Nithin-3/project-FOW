@@ -18,7 +18,7 @@ export const worldCtx = world.getContext('2d')!;
 export const fogCtx = fog.getContext('2d')!;
 export const hudCtx = hud.getContext('2d')!;
 
-const cameraWidth = 1000
+const cameraWidth = 6000
 
 const worldSize = { v1: { x: -4100, y: -4100 }, v2: { x: 2100, y: 2100 } };
 const getWorldInfo = (world: any) => ({ width: world.v2.x - world.v1.x, height: world.v2.y - world.v1.y, offsetX: -world.v1.x, offsetY: -world.v1.y, });
@@ -32,7 +32,6 @@ export const cam = new Camera({ loc: { x: -2000, y: -2000 }, width: cameraWidth,
 
 
 const randomRange = (min: number, max: number) => Math.random() * (max - min) + min;
-
 
 const browns = [
 	"#D2B48C", // Light Brown
@@ -126,7 +125,7 @@ for (const o of staticObj) {
 					}
 					for (const t of candidates) {
 						if (t.hasEdge(dupDoor[d], dupDoor[d + 1]) && t !== triangles[i]) {
-							if (t.insert(triangles[i])) {
+							if (t.insert(triangles[i], false)) {
 								triangles[i].weight = 4
 								dupDoor.splice(d, 2);
 								break;
@@ -162,36 +161,16 @@ ctx.strokeStyle = "#663399"
 ctx.stroke()
 
 
-let nextRegion = 0;
-for (const tri of triQuad.getAll()) {
-	if (tri.regionId >= 0) continue;
-	const stack = [tri];
-	tri.regionId = nextRegion;
-	while (stack.length) {
-		const t = stack.pop()!;
-		for (const { neig } of t.neighbors) {
-			if (neig.regionId < 0) {
-				neig.regionId = nextRegion;
-				stack.push(neig);
-			}
-		}
-	}
-	nextRegion++;
-}
-
 ctx.lineWidth = 5;
-ctx.strokeStyle = "#ff4444";
+ctx.strokeStyle = "#000000";
 for (const tri of triQuad.getAll()) {
-	for (let i = 0; i < 3; i++) {
-		const a = tri.vertex[i];
-		const b = tri.vertex[(i + 1) % 3];
-		const shared = tri.neighbors.some(n => n.neig.hasEdge(a, b));
-		if (!shared) {
-			ctx.beginPath();
-			ctx.moveTo(a.x, a.y);
-			ctx.lineTo(b.x, b.y);
-			ctx.stroke();
-		}
+
+	for (let n = 0; n < tri.neighbors.length; n++) {
+
+		ctx.beginPath();
+		ctx.moveTo(tri.center.x, tri.center.y);
+		ctx.lineTo(tri.neighbors[n].neig.center.x, tri.neighbors[n].neig.center.y);
+		ctx.stroke();
 	}
 }
 
