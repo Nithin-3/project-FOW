@@ -179,6 +179,17 @@ const drawArrow = (ctx: OffscreenCanvasRenderingContext2D, from: Vector2D, to: V
 	ctx.stroke();
 };
 
+ctx.lineWidth = 2;
+ctx.strokeStyle = "#000000";
+for (const poly of triQuad.getAll()) {
+	ctx.beginPath();
+	ctx.moveTo(poly.vertex[0].x, poly.vertex[0].y);
+	for (let i = 1; i < poly.vertex.length; i++)
+		ctx.lineTo(poly.vertex[i].x, poly.vertex[i].y);
+	ctx.closePath();
+	ctx.stroke();
+}
+
 ctx.lineWidth = 5;
 ctx.strokeStyle = "#000000";
 ctx.fillStyle = "#000000";

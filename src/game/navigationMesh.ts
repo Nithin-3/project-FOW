@@ -1,6 +1,6 @@
-import type { Polygon, Vector2D } from "./types";
+import type { Polygon } from "./types";
 import * as pc from "polygon-clipping";
-import earcut from "earcut";
+import { removeHoles, convexPartition } from "poly-partition";
 import { tri } from "./classes/triangle";
 import type { Quad } from "./classes/QuadTree";
 
@@ -28,61 +28,28 @@ export function triangulate(outer: Polygon, triQuad: Quad<tri>, holes: Polygon[]
 	for (const poly of merged)
 		freeSpace = pc.difference(freeSpace, [poly]);
 
-	const triangles: tri[] = [];
+	const raw: tri[] = [];
+	const buckets = new Set<tri>();
+
 	for (const polyRings of freeSpace) {
 		const outerRing = ringToPolygon(polyRings[0]);
 		const innerHoles = polyRings.slice(1).map(ringToPolygon);
 
-		const coords: number[] = [];
-		const holeIndices: number[] = [];
-
-		for (const p of outerRing) coords.push(p.x, p.y);
-		for (const hole of innerHoles) {
-			holeIndices.push(coords.length / 2);
-			for (const p of hole) coords.push(p.x, p.y);
+		let contour = outerRing.map(p => ({ x: p.x, y: p.y }));
+		if (innerHoles.length > 0) {
+			contour = removeHoles(contour, innerHoles.map(h => h.map(p => ({ x: p.x, y: p.y }))), true);
 		}
 
-		const indices = earcut(coords, holeIndices.length ? holeIndices : undefined);
-		const buckets = new Set<tri>();
-		for (let i = 0; i < indices.length; i += 3) {
-			const idxs = [indices[i], indices[i + 1], indices[i + 2]];
-			const verts = idxs.map(idx => ({ x: coords[idx * 2], y: coords[idx * 2 + 1] }));
-			const TRI = new tri(verts[0], verts[1], verts[2]);
-
-			buckets.forEach(t=>TRI.insert(t))
-			buckets.add(TRI)
-
-			
-
-			// for (let e = 0; e < 3; e++) {
-			// 	const a = verts[e];
-			// 	const b = verts[(e + 1) % 3];
-			//
-			// 	let dx = b.x - a.x;
-			// 	let dy = b.y - a.y;
-			// 	if (dx < 0 || (dx === 0 && dy < 0)) { dx = -dx; dy = -dy; }
-			// 	const key = Math.round(dx / 100) * 1000000 + Math.round(dy / 100) * 1000 + Math.round((a.x + b.x) / 400) * 100 + Math.round((a.y + b.y) / 400);
-			//
-			// 	const bucket = edgeBuckets.get(key);
-			// 	if (bucket) {
-			// 		const eps = 1e-6;
-			// 		for (const entry of bucket) {
-			// 			let shared = 0;
-			// 			for (const v1 of [entry.a, entry.b])
-			// 				for (const v2 of [a, b])
-			// 					if (Math.abs(v1.x - v2.x) <= eps && Math.abs(v1.y - v2.y) <= eps) shared++;
-			// 			if (shared >= 2) TRI.insert(entry.tri, false);
-			// 		}
-			// 	} else {
-			// 		edgeBuckets.set(key, []);
-			// 	}
-			// 	edgeBuckets.get(key)!.push({ a, b, tri: TRI });
-			// }
-
-			triangles.push(TRI);
-			triQuad.insert(TRI);
+		const convexes = convexPartition(contour, true);
+		for (const polygon of convexes) {
+			if (polygon.length < 3) continue;
+			const TRI = new tri(...polygon);
+			buckets.forEach(t => TRI.insert(t));
+			buckets.add(TRI);
+			raw.push(TRI);
 		}
 	}
 
-	return triangles;
+	for (const t of raw) triQuad.insert(t);
+	return raw;
 }

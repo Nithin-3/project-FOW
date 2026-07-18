@@ -13,7 +13,7 @@
     "vite": "^8.1.0"
   },
   "dependencies": {
-    "earcut": "^3.2.3",
+    "poly-partition": "^1.0.2",
     "polygon-clipping": "^0.15.7"
   }
 }

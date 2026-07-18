@@ -66,13 +66,13 @@ hud.onclick = async (e) => {
 			}
 
 			const drawTri = (t: typeof v) => {
-				const a = cam.world2screen(t.vertex[0]);
-				const b = cam.world2screen(t.vertex[1]);
-				const c = cam.world2screen(t.vertex[2]);
 				worldCtx.beginPath();
+				const a = cam.world2screen(t.vertex[0]);
 				worldCtx.moveTo(a.x, a.y);
-				worldCtx.lineTo(b.x, b.y);
-				worldCtx.lineTo(c.x, c.y);
+				for (let i = 1; i < t.vertex.length; i++) {
+					const vt = cam.world2screen(t.vertex[i]);
+					worldCtx.lineTo(vt.x, vt.y);
+				}
 				worldCtx.closePath();
 				worldCtx.strokeStyle = "purple";
 				worldCtx.lineWidth = 2;
@@ -87,13 +87,13 @@ hud.onclick = async (e) => {
 		if (findPath[0] !== findPath[1]) {
 			const path = await dijkstra(findPath[0], findPath[1], pathSource, pathTarget, worldCtx, v => cam.world2screen(v));
 			path.forEach(t => {
-				const a = cam.world2screen(t.vertex[0]);
-				const b = cam.world2screen(t.vertex[1]);
-				const c = cam.world2screen(t.vertex[2]);
 				worldCtx.beginPath();
+				const a = cam.world2screen(t.vertex[0]);
 				worldCtx.moveTo(a.x, a.y);
-				worldCtx.lineTo(b.x, b.y);
-				worldCtx.lineTo(c.x, c.y);
+				for (let i = 1; i < t.vertex.length; i++) {
+					const v = cam.world2screen(t.vertex[i]);
+					worldCtx.lineTo(v.x, v.y);
+				}
 				worldCtx.closePath();
 				worldCtx.fillStyle = "rgba(255,255,0,0.3)";
 				worldCtx.fill();

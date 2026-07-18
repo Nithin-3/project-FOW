@@ -69,7 +69,7 @@ export const dijkstra = async (from: tri, to: tri, source: Vector2D, target: Vec
 				if (newCost >= nxt[COST]) continue;
 			nxt[COST] = newCost;
 			const line = subtractVectors(entity.visitor, TARGET)
-			const candidates = [nxt.vertex[0], nxt.vertex[1], nxt.vertex[2], nxt.center];
+			const candidates = [...nxt.vertex, nxt.center];
 			let bestDist = Infinity;
 			let bestPoint: Vector2D = nxt.center;
 			for (const p of candidates) {
