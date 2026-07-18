@@ -13,11 +13,18 @@ export class tri extends Entity {
 	neighbors: Neighbor[] = [];
 
 	weight: number = 1;
-	FROM: tri | null = null;
-	COST: number = Infinity;
-	DIST: number = Infinity;
-	PRIORITY: number = Infinity;
-	timeStamp: number = 0;
+	COST_F: number = Infinity;
+	COST_B: number = Infinity;
+	DIST_F: number = Infinity;
+	DIST_B: number = Infinity;
+	PRIORITY_F: number = Infinity;
+	PRIORITY_B: number = Infinity;
+
+	FROM_F: tri | null = null;
+	timeStamp_F: number = 0;
+
+	FROM_B: tri | null = null;
+	timeStamp_B: number = 0;
 
 	constructor(v1: Vector2D, v2: Vector2D, v3: Vector2D) {
 		super()
@@ -34,24 +41,10 @@ export class tri extends Entity {
 		}
 	}
 
-	private sameEdge(
-		a1: Vector2D,
-		a2: Vector2D,
-		b1: Vector2D,
-		b2: Vector2D,
-		eps: number
-	): boolean {
-
-		// cross product
-		const cross = (p: Vector2D, q: Vector2D, r: Vector2D) =>
-			(q.x - p.x) * (r.y - p.y) -
-			(q.y - p.y) * (r.x - p.x);
+	private sameEdge( a1: Vector2D, a2: Vector2D, b1: Vector2D, b2: Vector2D, eps: number ): boolean {
 
 		// both endpoints of B lie on A's line
-		if (
-			Math.abs(cross(a1, a2, b1)) > eps ||
-			Math.abs(cross(a1, a2, b2)) > eps
-		)
+		if ( Math.abs(cross(a1, a2, b1)) > eps || Math.abs(cross(a1, a2, b2)) > eps )
 			return false;
 
 		// project onto dominant axis
