@@ -38,33 +38,11 @@ export const dijkstra = async (from: tri, to: tri, source: Vector2D, target: Vec
 
 	const travel = (entity: typeof fTravel, FROM: "FROM_F" | "FROM_B", timeStamp: "timeStamp_F" | "timeStamp_B", COST: "COST_F" | "COST_B", DIST: "DIST_F" | "DIST_B", TARGET: Vector2D, SOURCE: Vector2D, que: ordQue, debugColor: string) => {
 		if (!entity) return;
-		if (debugCtx && worldToScreen) {
-			const from = entity.node[FROM];
-			if (from) {
-				const a = worldToScreen(from.center);
-				const v = worldToScreen(entity.visitor);
-				const b = worldToScreen(entity.node.center);
-				debugCtx.beginPath();
-				debugCtx.moveTo(a.x, a.y);
-				debugCtx.lineTo(b.x, b.y);
-				debugCtx.strokeStyle = debugColor;
-				debugCtx.lineWidth = 1;
-				debugCtx.stroke();
-				debugCtx.closePath()
-
-				debugCtx.beginPath()
-				debugCtx.arc(v.x, v.y, 3, 0, Math.PI * 2);
-				debugCtx.fillStyle = "orange"
-				debugCtx.fill()
-				debugCtx.closePath()
-
-			}
-		}
 
 		for (let n = 0; n < entity.node.neighbors.length; n++) {
 			const nxt = entity.node.neighbors[n].neig;
 			if (!nxt || nxt == entity.node[FROM]) continue;
-			const newCost = entity.cost + entity.node.neighbors[n].dist * nxt.weight;
+			const newCost = entity.node[COST] + entity.node.neighbors[n].dist * nxt.weight;
 			if (nxt[timeStamp] === pathId)
 				if (newCost >= nxt[COST]) continue;
 			nxt[COST] = newCost;
@@ -80,6 +58,29 @@ export const dijkstra = async (from: tri, to: tri, source: Vector2D, target: Vec
 			nxt[FROM] = entity.node;
 			nxt[timeStamp] = pathId;
 			que.insert(nxt, bestPoint);
+
+
+			if (debugCtx && worldToScreen) {
+				const a = worldToScreen(entity.node.center);
+				const v = worldToScreen(entity.visitor);
+				const b = worldToScreen(nxt.center);
+				debugCtx.beginPath();
+				debugCtx.moveTo(a.x, a.y);
+				debugCtx.lineTo(b.x, b.y);
+				debugCtx.strokeStyle = debugColor;
+				debugCtx.lineWidth = 3;
+				debugCtx.stroke();
+				debugCtx.closePath()
+
+				debugCtx.beginPath()
+				debugCtx.arc(v.x, v.y, 3, 0, Math.PI * 2);
+				debugCtx.fillStyle = "#fbff00"
+				debugCtx.fill()
+				debugCtx.closePath()
+
+			}
+
+
 		}
 
 	}
@@ -92,30 +93,39 @@ export const dijkstra = async (from: tri, to: tri, source: Vector2D, target: Vec
 		debugCtx.beginPath();
 		debugCtx.moveTo(a.x, a.y);
 		debugCtx.lineTo(b.x, b.y);
-		debugCtx.strokeStyle = "red";
+		debugCtx.strokeStyle = "#800080";
 		debugCtx.lineWidth = 3;
 		debugCtx.stroke();
 
 	}
-	while (fTravel && bTravel) {
-		if (fTravel.node.timeStamp_F === fTravel.node.timeStamp_B) {
+	while (fTravel || bTravel) {
+		if (fTravel && fTravel.node.timeStamp_F === fTravel.node.timeStamp_B) {
 			return done(buildPath(fTravel.node));
 		}
-		if (bTravel.node.timeStamp_F === bTravel.node.timeStamp_B) {
+		if (bTravel && bTravel.node.timeStamp_F === bTravel.node.timeStamp_B) {
 			return done(buildPath(bTravel.node));
 		}
 
-		travel(fTravel, "FROM_F", "timeStamp_F", "COST_F", "DIST_F", target, source, fQue, "blue");
-		fTravel = fQue.pop();
+		if (fTravel) {
+			travel(fTravel, "FROM_F", "timeStamp_F", "COST_F", "DIST_F", target, source, fQue, "blue");
+			fTravel = fQue.pop();
+		} else {
+			console.error("no node to travel forward");
+		}
 
-		travel(bTravel, "FROM_B", "timeStamp_B", "COST_B", "DIST_B", source, target, bQue, "red")
-		bTravel = bQue.pop();
+		if (bTravel) {
+			travel(bTravel, "FROM_B", "timeStamp_B", "COST_B", "DIST_B", source, target, bQue, "red");
+			bTravel = bQue.pop();
+		} else {
+			console.error("no node to travel backward");
+		}
+
 	}
 
 
-	console.log(`A* no path:
+	console.error(`A* no path:
 	from neighbors=${from.neighbors.length}
-	fQue explored=${fQue.length}`);
+	to neighbors=${to.neighbors.length}`);
 	return done([]);
 };
 

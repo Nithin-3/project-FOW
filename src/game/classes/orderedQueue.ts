@@ -35,15 +35,6 @@ export class ordQue {
 	}
 
 	pop(): Entry | undefined {
-		while (this.queue.length) {
-			const e = this.queue.shift()!
-			const nodePri = this.forward ? e.node.PRIORITY_F : e.node.PRIORITY_B;
-			if (e.cost + e.dist === nodePri) return e;
-		}
-		return undefined;
-	}
-
-	get length(): number {
-		return this.queue.length;
+		return this.queue.shift();
 	}
 }

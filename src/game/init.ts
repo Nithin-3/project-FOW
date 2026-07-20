@@ -47,7 +47,7 @@ const browns = [
 ];
 
 
-for (let i = 0; i < 600; i++) {
+for (let i = 0; i < 300; i++) {
 	const x = randomRange(worldSize.v1.x, worldSize.v2.x);
 	const y = randomRange(worldSize.v1.y, worldSize.v2.y);
 	const points = 3 + Math.floor(Math.random() * 14);
@@ -165,7 +165,7 @@ ctx.strokeStyle = "#663399"
 ctx.stroke()
 
 
-const drawArrow = (ctx: OffscreenCanvasRenderingContext2D, from: Vector2D, to: Vector2D, size = 20) => {
+const drawArrow = (ctx: OffscreenCanvasRenderingContext2D, from: Vector2D, to: Vector2D, size = 15) => {
 	const angle = Math.atan2(to.y - from.y, to.x - from.x);
 	ctx.beginPath();
 	ctx.moveTo(from.x, from.y);
@@ -176,21 +176,23 @@ const drawArrow = (ctx: OffscreenCanvasRenderingContext2D, from: Vector2D, to: V
 	ctx.lineTo(to.x - size * Math.cos(angle - Math.PI / 6), to.y - size * Math.sin(angle - Math.PI / 6));
 	ctx.lineTo(to.x - size * Math.cos(angle + Math.PI / 6), to.y - size * Math.sin(angle + Math.PI / 6));
 	ctx.closePath();
-	ctx.stroke();
+	ctx.fill();
 };
 
-ctx.lineWidth = 2;
-ctx.strokeStyle = "#000000";
+ctx.lineWidth = 1;
+ctx.strokeStyle = "cyan";
+ctx.fillStyle = "rgba(255, 127, 255,0.3)";
 for (const poly of triQuad.getAll()) {
 	ctx.beginPath();
 	ctx.moveTo(poly.vertex[0].x, poly.vertex[0].y);
 	for (let i = 1; i < poly.vertex.length; i++)
 		ctx.lineTo(poly.vertex[i].x, poly.vertex[i].y);
 	ctx.closePath();
-	ctx.stroke();
+	ctx.fill();
+	ctx.stroke()
 }
 
-ctx.lineWidth = 5;
+ctx.lineWidth = 3;
 ctx.strokeStyle = "#000000";
 ctx.fillStyle = "#000000";
 for (const tri of triQuad.getAll()) {

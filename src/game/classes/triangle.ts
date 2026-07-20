@@ -73,7 +73,6 @@ export class tri extends Entity {
 	insert(n: tri, check = true): boolean {
 		if (this === n || this.neighbors.some(ne => ne.neig === n)) return true;
 		if (check && !this.sharesEdge(n)) return false;
-
 		const dist = distSq(this.center, n.center)
 		this.neighbors.push({ dist, neig: n });
 		n.neighbors.push({ dist, neig: this });
@@ -92,4 +91,5 @@ export class tri extends Entity {
 		}
 		return false;
 	}
+
 }
