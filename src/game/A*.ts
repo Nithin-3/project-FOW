@@ -29,8 +29,8 @@ export const dijkstra = async (from: tri, to: tri, source: Vector2D, target: Vec
 
 	const fQue = new ordQue(pathId, true);
 	const bQue = new ordQue(pathId, false);
-	fQue.insert(from, target);
-	bQue.insert(to, source);
+	fQue.insert(from, from.COST_F, from.DIST_F, target);
+	bQue.insert(to, to.COST_B, to.DIST_B, source);
 
 	let fTravel = fQue.pop();
 	let bTravel = bQue.pop();
@@ -45,7 +45,6 @@ export const dijkstra = async (from: tri, to: tri, source: Vector2D, target: Vec
 			const newCost = entity.node[COST] + entity.node.neighbors[n].dist * nxt.weight;
 			if (nxt[timeStamp] === pathId)
 				if (newCost >= nxt[COST]) continue;
-			nxt[COST] = newCost;
 			const line = subtractVectors(entity.visitor, TARGET)
 			const candidates = [...nxt.vertex, nxt.center];
 			let bestDist = Infinity;
@@ -54,10 +53,12 @@ export const dijkstra = async (from: tri, to: tri, source: Vector2D, target: Vec
 				const d = Math.abs(crossProduct(line, subtractVectors(SOURCE, p)));
 				if (d < bestDist) { bestDist = d; bestPoint = p; }
 			}
-			nxt[DIST] = distSq(bestPoint, TARGET) * (1 + bestDist) * (1 + Math.abs(crossProduct(strictLine, subtractVectors(SOURCE, bestPoint))));
+			const newDist = distSq(bestPoint, TARGET) * (1 + bestDist) * (1 + Math.abs(crossProduct(strictLine, subtractVectors(SOURCE, bestPoint))));
+			if (!que.insert(nxt, newCost, newDist, bestPoint)) continue;
+			nxt[COST] = newCost;
+			nxt[DIST] = newDist;
 			nxt[FROM] = entity.node;
 			nxt[timeStamp] = pathId;
-			que.insert(nxt, bestPoint);
 
 
 			if (debugCtx && worldToScreen) {

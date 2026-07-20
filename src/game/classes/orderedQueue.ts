@@ -14,24 +14,19 @@ export class ordQue {
 		this.forward = forward;
 	}
 
-	private pri(e: Entry): number {
-		return e.cost + e.dist;
-	}
-
-	insert(node: tri, visitor: Vector2D): void {
-		const cost = this.forward ? node.COST_F : node.COST_B;
-		const dist = this.forward ? node.DIST_F : node.DIST_B;
+	insert(node: tri, cost: number, dist: number, visitor: Vector2D): boolean {
 		const pri = cost + dist;
 		const ts = this.forward ? node.timeStamp_F : node.timeStamp_B;
 		if (ts === this.timeStamp) {
 			const curPri = this.forward ? node.PRIORITY_F : node.PRIORITY_B;
-			if (pri >= curPri) return;
+			if (pri >= curPri) return false;
 		}
 		if (this.forward) node.PRIORITY_F = pri; else node.PRIORITY_B = pri;
 
 		const e: Entry = { node, cost, dist, visitor };
 		this.queue.push(e);
-		this.queue.sort((a, b) => this.pri(a) - this.pri(b))
+		this.queue.sort((a, b) => (a.cost + a.dist) - (b.cost + b.dist));
+		return true;
 	}
 
 	pop(): Entry | undefined {
