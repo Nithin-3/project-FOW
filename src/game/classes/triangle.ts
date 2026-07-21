@@ -5,6 +5,7 @@ import { Entity } from "./Entity";
 type Neighbor = {
 	dist: number;
 	neig: tri;
+	edge: [Vector2D, Vector2D]
 }
 
 export class tri extends Entity {
@@ -21,9 +22,11 @@ export class tri extends Entity {
 	PRIORITY_B: number = Infinity;
 
 	FROM_F: tri | null = null;
+	EDGE_F: [Vector2D, Vector2D] | null = null;
 	timeStamp_F: number = 0;
 
 	FROM_B: tri | null = null;
+	EDGE_B: [Vector2D, Vector2D] | null = null;
 	timeStamp_B: number = 0;
 
 	constructor(...vertices: Vector2D[]) {
@@ -41,9 +44,9 @@ export class tri extends Entity {
 		this.center = { x: cx / vertices.length, y: cy / vertices.length };
 	}
 
-	private sameEdge(a1: Vector2D, a2: Vector2D, b1: Vector2D, b2: Vector2D, eps: number): boolean {
+	private sameEdge(a1: Vector2D, a2: Vector2D, b1: Vector2D, b2: Vector2D, eps: number): [Vector2D, Vector2D] | null {
 		if (Math.abs(cross(a1, a2, b1)) > eps || Math.abs(cross(a1, a2, b2)) > eps)
-			return false;
+			return null;
 
 		const useX = Math.abs(a2.x - a1.x) >= Math.abs(a2.y - a1.y);
 		const aMin = Math.min(useX ? a1.x : a1.y, useX ? a2.x : a2.y);
@@ -51,10 +54,21 @@ export class tri extends Entity {
 		const bMin = Math.min(useX ? b1.x : b1.y, useX ? b2.x : b2.y);
 		const bMax = Math.max(useX ? b1.x : b1.y, useX ? b2.x : b2.y);
 
-		return Math.min(aMax, bMax) - Math.max(aMin, bMin) > eps;
+		const overlapMin = Math.max(aMin, bMin);
+		const overlapMax = Math.min(aMax, bMax);
+		if (overlapMax - overlapMin <= eps) return null;
+
+		const shared1: Vector2D = useX
+			? { x: overlapMin, y: a1.y + (a2.y - a1.y) * (overlapMin - a1.x) / (a2.x - a1.x) }
+			: { x: a1.x + (a2.x - a1.x) * (overlapMin - a1.y) / (a2.y - a1.y), y: overlapMin };
+		const shared2: Vector2D = useX
+			? { x: overlapMax, y: a1.y + (a2.y - a1.y) * (overlapMax - a1.x) / (a2.x - a1.x) }
+			: { x: a1.x + (a2.x - a1.x) * (overlapMax - a1.y) / (a2.y - a1.y), y: overlapMax };
+		return [shared1, shared2];
+
 	}
 
-	private sharesEdge(n: tri, eps = 1e-6): boolean {
+	private sharesEdge(n: tri, eps = 1e-6): [Vector2D, Vector2D] | null {
 		const nv = this.vertex.length;
 		const mv = n.vertex.length;
 		for (let i = 0; i < nv; i++) {
@@ -63,19 +77,21 @@ export class tri extends Entity {
 			for (let j = 0; j < mv; j++) {
 				const b1 = n.vertex[j];
 				const b2 = n.vertex[(j + 1) % mv];
-				if (this.sameEdge(a1, a2, b1, b2, eps))
-					return true;
+				const edge = this.sameEdge(a1, a2, b1, b2, eps)
+				if (edge)
+					return edge;
 			}
 		}
-		return false;
+		return null;
 	}
 
-	insert(n: tri, check = true): boolean {
+	insert(n: tri): boolean {
 		if (this === n || this.neighbors.some(ne => ne.neig === n)) return true;
-		if (check && !this.sharesEdge(n)) return false;
+		const edge = this.sharesEdge(n)
+		if (!edge) return false;
 		const dist = distSq(this.center, n.center)
-		this.neighbors.push({ dist, neig: n });
-		n.neighbors.push({ dist, neig: this });
+		this.neighbors.push({ dist, neig: n, edge });
+		n.neighbors.push({ dist, neig: this, edge });
 		return true;
 	}
 

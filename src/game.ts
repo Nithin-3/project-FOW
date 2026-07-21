@@ -88,15 +88,11 @@ hud.onclick = async (e) => {
 			const path = await dijkstra(findPath[0], findPath[1], pathSource, pathTarget, worldCtx, v => cam.world2screen(v));
 			path.forEach(t => {
 				worldCtx.beginPath();
-				const a = cam.world2screen(t.vertex[0]);
+				const a = cam.world2screen(t[0]);
+				const v = cam.world2screen(t[1]);
 				worldCtx.moveTo(a.x, a.y);
-				for (let i = 1; i < t.vertex.length; i++) {
-					const v = cam.world2screen(t.vertex[i]);
-					worldCtx.lineTo(v.x, v.y);
-				}
+				worldCtx.lineTo(v.x, v.y);
 				worldCtx.closePath();
-				worldCtx.fillStyle = "rgba(255,255,0,0.3)";
-				worldCtx.fill();
 				worldCtx.strokeStyle = "yellow";
 				worldCtx.lineWidth = 2;
 				worldCtx.stroke();

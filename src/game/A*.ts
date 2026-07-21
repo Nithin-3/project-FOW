@@ -5,22 +5,28 @@ import { crossProduct, distSq, subtractVectors } from "./utils";
 import { Uid } from "./uid";
 
 
-export const dijkstra = async (from: tri, to: tri, source: Vector2D, target: Vector2D, debugCtx?: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D, worldToScreen?: (v: Vector2D) => Vector2D): Promise<tri[]> => {
+export const dijkstra = async (from: tri, to: tri, source: Vector2D, target: Vector2D,
+	debugCtx?: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D, worldToScreen?: (v: Vector2D) => Vector2D
+): Promise<[Vector2D, Vector2D][]> => {
 	const start = performance.now();
-	const done = (path: tri[]): tri[] => {
+	const done = (path: [Vector2D, Vector2D][]): [Vector2D, Vector2D][] => {
 		console.log(`A* ${path.length ? 'found' : 'no path'} (${performance.now() - start}ms)`);
 		return path;
 	};
-	if (from === to) return done([from]);
+	if (from === to) return done([]);
 	const pathId: number = Uid.next().value!;
 	const strictLine = subtractVectors(source, target);
 
 	from.COST_F = 0;
 	from.DIST_F = distSq(from.center, target);
 	from.PRIORITY_F = Infinity;
+	from.EDGE_F = null;
+	from.EDGE_B = null;
 	to.COST_B = 0;
 	to.DIST_B = distSq(to.center, source);
 	to.PRIORITY_B = Infinity;
+	to.EDGE_F = null;
+	to.EDGE_B = null;
 
 	from.timeStamp_F = pathId;
 	from.FROM_F = null;
@@ -36,7 +42,7 @@ export const dijkstra = async (from: tri, to: tri, source: Vector2D, target: Vec
 	let bTravel = bQue.pop();
 
 
-	const travel = (entity: typeof fTravel, FROM: "FROM_F" | "FROM_B", timeStamp: "timeStamp_F" | "timeStamp_B", COST: "COST_F" | "COST_B", DIST: "DIST_F" | "DIST_B", TARGET: Vector2D, SOURCE: Vector2D, que: ordQue, debugColor: string) => {
+	const travel = (entity: typeof fTravel, FROM: "FROM_F" | "FROM_B", EDGE: "EDGE_F" | "EDGE_B", timeStamp: "timeStamp_F" | "timeStamp_B", COST: "COST_F" | "COST_B", DIST: "DIST_F" | "DIST_B", TARGET: Vector2D, SOURCE: Vector2D, que: ordQue, debugColor: string) => {
 		if (!entity) return;
 
 		for (let n = 0; n < entity.node.neighbors.length; n++) {
@@ -50,14 +56,15 @@ export const dijkstra = async (from: tri, to: tri, source: Vector2D, target: Vec
 			let bestDist = Infinity;
 			let bestPoint: Vector2D = nxt.center;
 			for (const p of candidates) {
-				const d = Math.abs(crossProduct(line, subtractVectors(SOURCE, p)));
+				const d = Math.abs(crossProduct(strictLine, subtractVectors(SOURCE, p)));
 				if (d < bestDist) { bestDist = d; bestPoint = p; }
 			}
-			const newDist = distSq(bestPoint, TARGET) * (1 + bestDist) * (1 + Math.abs(crossProduct(strictLine, subtractVectors(SOURCE, bestPoint))));
+			const newDist = distSq(bestPoint, TARGET) * (1 + bestDist) * (1 + Math.abs(crossProduct(line, subtractVectors(SOURCE, bestPoint))));
 			if (!que.insert(nxt, newCost, newDist, bestPoint)) continue;
 			nxt[COST] = newCost;
 			nxt[DIST] = newDist;
 			nxt[FROM] = entity.node;
+			nxt[EDGE] = entity.node.neighbors[n].edge;
 			nxt[timeStamp] = pathId;
 
 
@@ -74,8 +81,8 @@ export const dijkstra = async (from: tri, to: tri, source: Vector2D, target: Vec
 				debugCtx.closePath()
 
 				debugCtx.beginPath()
-				debugCtx.arc(v.x, v.y, 3, 0, Math.PI * 2);
-				debugCtx.fillStyle = "#fbff00"
+				debugCtx.arc(v.x, v.y, 5, 0, Math.PI * 2);
+				debugCtx.fillStyle = "#e11eb4"
 				debugCtx.fill()
 				debugCtx.closePath()
 
@@ -100,22 +107,20 @@ export const dijkstra = async (from: tri, to: tri, source: Vector2D, target: Vec
 
 	}
 	while (fTravel || bTravel) {
-		if (fTravel && fTravel.node.timeStamp_F === fTravel.node.timeStamp_B) {
+		if (fTravel && fTravel.node.timeStamp_F === fTravel.node.timeStamp_B)
 			return done(buildPath(fTravel.node));
-		}
-		if (bTravel && bTravel.node.timeStamp_F === bTravel.node.timeStamp_B) {
+		if (bTravel && bTravel.node.timeStamp_F === bTravel.node.timeStamp_B)
 			return done(buildPath(bTravel.node));
-		}
 
 		if (fTravel) {
-			travel(fTravel, "FROM_F", "timeStamp_F", "COST_F", "DIST_F", target, source, fQue, "blue");
+			travel(fTravel, "FROM_F", "EDGE_F", "timeStamp_F", "COST_F", "DIST_F", target, source, fQue, "blue");
 			fTravel = fQue.pop();
 		} else {
 			console.error("no node to travel forward");
 		}
 
 		if (bTravel) {
-			travel(bTravel, "FROM_B", "timeStamp_B", "COST_B", "DIST_B", source, target, bQue, "red");
+			travel(bTravel, "FROM_B", "EDGE_B", "timeStamp_B", "COST_B", "DIST_B", source, target, bQue, "red");
 			bTravel = bQue.pop();
 		} else {
 			console.error("no node to travel backward");
@@ -130,21 +135,23 @@ export const dijkstra = async (from: tri, to: tri, source: Vector2D, target: Vec
 	return done([]);
 };
 
-const buildPath = (meet: tri): tri[] => {
-	const fPath: tri[] = [];
-	let cur: tri | null = meet;
-	while (cur) {
-		fPath.push(cur);
-		cur = cur.FROM_F;
-	}
-	fPath.reverse();
+const buildPath = (meet: tri): [Vector2D, Vector2D][] => {
+	const pathF: [Vector2D, Vector2D][] = [];
+	const pathB: [Vector2D, Vector2D][] = [];
 
-	const bPath: tri[] = [];
-	cur = meet.FROM_B;
-	while (cur) {
-		bPath.push(cur);
-		cur = cur.FROM_B;
+	let curF: tri | null = meet;
+	let curB: tri | null = meet;
+	while (curF?.EDGE_F || curB?.EDGE_B) {
+		if (curF?.EDGE_F) {
+			pathF.push(curF.EDGE_F);
+			curF = curF.FROM_F;
+		}
+		if (curB?.EDGE_B) {
+			pathB.push(curB.EDGE_B);
+			curB = curB.FROM_B;
+		}
 	}
+	pathF.reverse();
 
-	return [...fPath, ...bPath];
+	return [...pathF, ...pathB];
 };

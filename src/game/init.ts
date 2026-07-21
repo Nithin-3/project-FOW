@@ -129,7 +129,7 @@ for (const o of staticObj) {
 					}
 					for (const t of candidates) {
 						if (t.hasEdge(dupDoor[d], dupDoor[d + 1]) && t !== triangles[i]) {
-							if (t.insert(triangles[i], false)) {
+							if (t.insert(triangles[i])) {
 								triangles[i].weight = 4
 								dupDoor.splice(d, 2);
 								break;
