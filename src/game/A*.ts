@@ -5,6 +5,17 @@ import { crossProduct, distSq, subtractVectors } from "./utils";
 import { Uid } from "./uid";
 
 
+function orientEdge(edge: [Vector2D, Vector2D], dir: Vector2D): [Vector2D, Vector2D] {
+	const mid = { x: (edge[0].x + edge[1].x) / 2, y: (edge[0].y + edge[1].y) / 2 };
+	const v0 = subtractVectors(edge[0], mid);
+	const v1 = subtractVectors(edge[1], mid);
+	// In y-down: cross < 0 = LEFT, cross > 0 = RIGHT
+	if (crossProduct(dir, v0) <= crossProduct(dir, v1))
+		return [edge[0], edge[1]];
+	else
+		return [edge[1], edge[0]];
+}
+
 export const dijkstra = async (from: tri, to: tri, source: Vector2D, target: Vector2D,
 	debugCtx?: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D, worldToScreen?: (v: Vector2D) => Vector2D
 ): Promise<[Vector2D, Vector2D][]> => {
@@ -15,7 +26,7 @@ export const dijkstra = async (from: tri, to: tri, source: Vector2D, target: Vec
 	};
 	if (from === to) return done([]);
 	const pathId: number = Uid.next().value!;
-	const strictLine = subtractVectors(source, target);
+	const strictLine = subtractVectors(target, source);
 
 	from.COST_F = 0;
 	from.DIST_F = distSq(from.center, target);
@@ -64,7 +75,8 @@ export const dijkstra = async (from: tri, to: tri, source: Vector2D, target: Vec
 			nxt[COST] = newCost;
 			nxt[DIST] = newDist;
 			nxt[FROM] = entity.node;
-			nxt[EDGE] = entity.node.neighbors[n].edge;
+			nxt[EDGE] = orientEdge(entity.node.neighbors[n].edge, strictLine );
+			// EDGE === "EDGE_B" && (nxt[EDGE] = [nxt[EDGE][1], nxt[EDGE][0]])
 			nxt[timeStamp] = pathId;
 
 
