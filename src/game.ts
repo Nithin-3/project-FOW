@@ -5,6 +5,7 @@ import { multiplyVector, normalizeVector, subtractVectors, } from "./game/utils"
 import { pointInPolygon } from "./game/tools";
 import type { tri } from "./game/classes/triangle";
 import { dijkstra } from "./game/A*";
+import { tuneingPath } from "./game/tunePath";
 
 
 let moveCam: Vector2D = { x: 0, y: 0 };
@@ -84,20 +85,32 @@ hud.onclick = async (e) => {
 	})
 
 	if (e.ctrlKey && findPath[0] && findPath[1]) {
-		if (findPath[0] !== findPath[1]) {
-			const path = await dijkstra(findPath[0], findPath[1], pathSource, pathTarget, worldCtx, v => cam.world2screen(v));
-			path.forEach(t => {
-				worldCtx.beginPath();
-				const a = cam.world2screen(t[0]);
-				const v = cam.world2screen(t[1]);
-				worldCtx.moveTo(a.x, a.y);
-				worldCtx.lineTo(v.x, v.y);
-				worldCtx.closePath();
-				worldCtx.strokeStyle = "yellow";
-				worldCtx.lineWidth = 2;
-				worldCtx.stroke();
-			});
+		const path = await dijkstra(findPath[0], findPath[1], pathSource, pathTarget);
+		path.forEach(t => {
+			worldCtx.beginPath();
+			const a = cam.world2screen(t[0]);
+			const v = cam.world2screen(t[1]);
+			worldCtx.moveTo(a.x, a.y);
+			worldCtx.lineTo(v.x, v.y);
+			worldCtx.strokeStyle = "yellow";
+			worldCtx.lineWidth = 2;
+			worldCtx.stroke();
+		});
+
+
+		const walk = tuneingPath(pathSource, pathTarget, path, worldCtx, v => cam.world2screen(v))
+		worldCtx.beginPath();
+		const a = cam.world2screen(walk[0]);
+		worldCtx.moveTo(a.x, a.y);
+		for (let w = 1; w < walk.length; w++) {
+			const a = cam.world2screen(walk[w]);
+			worldCtx.lineTo(a.x, a.y);
+			// worldCtx.arc(a.x, a.y, 8, 0, Math.PI * 2)
 		}
+		worldCtx.strokeStyle = "#ffffff";
+		worldCtx.lineWidth = 2;
+		worldCtx.stroke();
+
 		findPath[0] = null;
 		findPath[1] = null;
 	}
