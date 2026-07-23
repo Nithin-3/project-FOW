@@ -1,12 +1,8 @@
 import { circlePolygonIntersect, segmentIntersectPolygon, pointInPolygon, segmentIntersect } from "../tools";
 import type { Polygon, Vector2D } from "../types";
-import { subtractVectors, vectorLerp } from "../utils";
+import { samePoint, subtractVectors, vectorLerp } from "../utils";
 
 const EPS = 0.0001;
-
-function samePoint(a: Vector2D, b: Vector2D, eps = 1e-6): boolean {
-	return (Math.abs(a.x - b.x) < eps && Math.abs(a.y - b.y) < eps);
-}
 
 function hasLOS(A: Vector2D, B: Vector2D, polygon: Polygon, exclude?: Vector2D): boolean {
 	for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {

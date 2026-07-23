@@ -50,6 +50,10 @@ export function cross(A: Vector2D, B: Vector2D, C: Vector2D): number {
 		- (B.y - A.y) * (C.x - A.x);
 }
 
+export function samePoint(a: Vector2D, b: Vector2D, eps = 1e-5): boolean {
+	return (Math.abs(a.x - b.x) < eps && Math.abs(a.y - b.y) < eps);
+}
+
 export function key(v: Vector2D): string {
 	return `${v.x},${v.y}`;
 }
