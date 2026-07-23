@@ -16,9 +16,7 @@ function orientEdge(edge: [Vector2D, Vector2D], dir: Vector2D): [Vector2D, Vecto
 		return [edge[1], edge[0]];
 }
 
-export const dijkstra = async (from: tri, to: tri, source: Vector2D, target: Vector2D,
-	debugCtx?: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D, worldToScreen?: (v: Vector2D) => Vector2D
-): Promise<[Vector2D, Vector2D][]> => {
+export const dijkstra = async (from: tri, to: tri, source: Vector2D, target: Vector2D): Promise<[Vector2D, Vector2D][]> => {
 	const start = performance.now();
 	const done = (path: [Vector2D, Vector2D][]): [Vector2D, Vector2D][] => {
 		console.log(`A* ${path.length ? 'found' : 'no path'} (${performance.now() - start}ms)`);
@@ -53,7 +51,7 @@ export const dijkstra = async (from: tri, to: tri, source: Vector2D, target: Vec
 	let bTravel = bQue.pop();
 
 
-	const travel = (entity: typeof fTravel, FROM: "FROM_F" | "FROM_B", EDGE: "EDGE_F" | "EDGE_B", timeStamp: "timeStamp_F" | "timeStamp_B", COST: "COST_F" | "COST_B", DIST: "DIST_F" | "DIST_B", TARGET: Vector2D, SOURCE: Vector2D, que: ordQue, debugColor: string) => {
+	const travel = (entity: typeof fTravel, FROM: "FROM_F" | "FROM_B", EDGE: "EDGE_F" | "EDGE_B", timeStamp: "timeStamp_F" | "timeStamp_B", COST: "COST_F" | "COST_B", DIST: "DIST_F" | "DIST_B", TARGET: Vector2D, SOURCE: Vector2D, que: ordQue) => {
 		if (!entity) return;
 
 		for (let n = 0; n < entity.node.neighbors.length; n++) {
@@ -75,49 +73,13 @@ export const dijkstra = async (from: tri, to: tri, source: Vector2D, target: Vec
 			nxt[COST] = newCost;
 			nxt[DIST] = newDist;
 			nxt[FROM] = entity.node;
-			nxt[EDGE] = orientEdge(entity.node.neighbors[n].edge, strictLine );
-			// EDGE === "EDGE_B" && (nxt[EDGE] = [nxt[EDGE][1], nxt[EDGE][0]])
 			nxt[timeStamp] = pathId;
-
-
-			if (debugCtx && worldToScreen) {
-				const a = worldToScreen(entity.node.center);
-				const v = worldToScreen(entity.visitor);
-				const b = worldToScreen(nxt.center);
-				debugCtx.beginPath();
-				debugCtx.moveTo(a.x, a.y);
-				debugCtx.lineTo(b.x, b.y);
-				debugCtx.strokeStyle = debugColor;
-				debugCtx.lineWidth = 3;
-				debugCtx.stroke();
-				debugCtx.closePath()
-
-				debugCtx.beginPath()
-				debugCtx.arc(v.x, v.y, 5, 0, Math.PI * 2);
-				debugCtx.fillStyle = "#e11eb4"
-				debugCtx.fill()
-				debugCtx.closePath()
-
-			}
-
-
+			nxt[EDGE] = orientEdge(entity.node.neighbors[n].edge, subtractVectors(nxt.center, nxt[FROM].center));
+			EDGE === "EDGE_B" && (nxt[EDGE] = [nxt[EDGE][1], nxt[EDGE][0]])
 		}
 
 	}
 
-
-
-	if (debugCtx && worldToScreen) {
-		const a = worldToScreen(source);
-		const b = worldToScreen(target);
-		debugCtx.beginPath();
-		debugCtx.moveTo(a.x, a.y);
-		debugCtx.lineTo(b.x, b.y);
-		debugCtx.strokeStyle = "#800080";
-		debugCtx.lineWidth = 3;
-		debugCtx.stroke();
-
-	}
 	while (fTravel || bTravel) {
 		if (fTravel && fTravel.node.timeStamp_F === fTravel.node.timeStamp_B)
 			return done(buildPath(fTravel.node));
@@ -125,14 +87,14 @@ export const dijkstra = async (from: tri, to: tri, source: Vector2D, target: Vec
 			return done(buildPath(bTravel.node));
 
 		if (fTravel) {
-			travel(fTravel, "FROM_F", "EDGE_F", "timeStamp_F", "COST_F", "DIST_F", target, source, fQue, "blue");
+			travel(fTravel, "FROM_F", "EDGE_F", "timeStamp_F", "COST_F", "DIST_F", target, source, fQue);
 			fTravel = fQue.pop();
 		} else {
 			console.error("no node to travel forward");
 		}
 
 		if (bTravel) {
-			travel(bTravel, "FROM_B", "EDGE_B", "timeStamp_B", "COST_B", "DIST_B", source, target, bQue, "red");
+			travel(bTravel, "FROM_B", "EDGE_B", "timeStamp_B", "COST_B", "DIST_B", source, target, bQue);
 			bTravel = bQue.pop();
 		} else {
 			console.error("no node to travel backward");
