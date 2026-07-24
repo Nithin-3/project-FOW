@@ -1,11 +1,6 @@
-import { cam, hud, hudCtx, world, worldCtx, edge, fogCtx, maskCtx, triQuad, setCameraWidth } from "./game/init";
-import { player } from "./game/classes/player";
+import { cam, hud, hudCtx, screenWorld, screenWorldCtx, edge, fogCtx, maskCtx, setCameraWidth, Player } from "./game/init";
 import type { Vector2D } from "./game/types";
-import { multiplyVector, normalizeVector, subtractVectors, } from "./game/utils";
-import { pointInPolygon } from "./game/tools";
-import type { tri } from "./game/classes/triangle";
-import { dijkstra } from "./game/A*";
-import { tuneingPath } from "./game/tunePath";
+import { addVectors, multiplyVector, normalizeVector, subtractVectors, vectorLerp } from "./game/utils";
 
 
 let moveCam: Vector2D = { x: 0, y: 0 };
@@ -37,82 +32,28 @@ document.addEventListener("keyup", (event) => {
 });
 
 
-const pl = new player({ x: 0, y: 0 })
-const findPath: [tri | null, tri | null] = [null, null]
-let pathSource: Vector2D = { x: 0, y: 0 };
-let pathTarget: Vector2D = { x: 0, y: 0 };
 hud.onclick = async (e) => {
 	const x = e.offsetX;
 	const y = e.offsetY;
 	const loc = cam.screen2world({ x, y })
-	pl.loc = loc
-	const v1 = cam.world2screen(pl.boundingBox().v1)
-	const v2 = cam.world2screen(pl.boundingBox().v2)
-	pl.render(worldCtx, v1, v2)
 
-	fogCtx.clearRect(0, 0, world.width, world.height);
-	maskCtx.globalCompositeOperation = "lighter";
-	maskCtx.drawImage(pl.shadow.texture, 0, 0);
+	// fogCtx.clearRect(0, 0, world.width, world.height);
+	// maskCtx.globalCompositeOperation = "lighter";
+	// maskCtx.drawImage(pl.shadow.texture, 0, 0);
 
-	triQuad.getLeafQuad(loc).forEach(v => {
-		if (pointInPolygon(loc, v.vertex)) {
-			if (e.ctrlKey) {
-				if (!findPath[0]) {
-					findPath[0] = v;
-					pathSource = loc;
-				} else {
-					findPath[1] = v;
-					pathTarget = loc;
-				}
-			}
-
-			const drawTri = (t: typeof v) => {
-				worldCtx.beginPath();
-				const a = cam.world2screen(t.vertex[0]);
-				worldCtx.moveTo(a.x, a.y);
-				for (let i = 1; i < t.vertex.length; i++) {
-					const vt = cam.world2screen(t.vertex[i]);
-					worldCtx.lineTo(vt.x, vt.y);
-				}
-				worldCtx.closePath();
-				worldCtx.strokeStyle = "purple";
-				worldCtx.lineWidth = 2;
-				worldCtx.stroke();
-			};
-			drawTri(v);
-			v.neighbors.forEach(ne => ne && drawTri(ne.neig));
-		}
-	})
-
-	if (e.ctrlKey && findPath[0] && findPath[1]) {
-		const path = await dijkstra(findPath[0], findPath[1], pathSource, pathTarget);
-		path.forEach(t => {
-			worldCtx.beginPath();
-			const a = cam.world2screen(t[0]);
-			const v = cam.world2screen(t[1]);
-			worldCtx.moveTo(a.x, a.y);
-			worldCtx.lineTo(v.x, v.y);
-			worldCtx.strokeStyle = "yellow";
-			worldCtx.lineWidth = 2;
-			worldCtx.stroke();
-		});
-
-
-		const walk = tuneingPath(pathSource, pathTarget, path, worldCtx, v => cam.world2screen(v))
-		worldCtx.beginPath();
+	if (e.ctrlKey) {
+		const walk = await Player.findPath(loc)
+		screenWorldCtx.beginPath();
 		const a = cam.world2screen(walk[0]);
-		worldCtx.moveTo(a.x, a.y);
+		screenWorldCtx.moveTo(a.x, a.y);
 		for (let w = 1; w < walk.length; w++) {
 			const a = cam.world2screen(walk[w]);
-			worldCtx.lineTo(a.x, a.y);
+			screenWorldCtx.lineTo(a.x, a.y);
 			// worldCtx.arc(a.x, a.y, 8, 0, Math.PI * 2)
 		}
-		worldCtx.strokeStyle = "#ffffff";
-		worldCtx.lineWidth = 2;
-		worldCtx.stroke();
-
-		findPath[0] = null;
-		findPath[1] = null;
+		screenWorldCtx.strokeStyle = "#ffffff";
+		screenWorldCtx.lineWidth = 2;
+		screenWorldCtx.stroke();
 	}
 }
 
@@ -170,16 +111,16 @@ function gameloop() {
 	acc += dt;
 	frameCount++;
 
-	const { width, height } = world;
+	const { width, height } = screenWorld;
 
 	if (moveCam.x !== 0 || moveCam.y !== 0) {
-		cam.moveCamera(multiplyVector(moveCam, dt * 3));
-		worldCtx.clearRect(0, 0, width, height);
-		fogCtx.clearRect(0, 0, world.width, world.height);
-		maskCtx.clearRect(0, 0, world.width, world.height);
+		cam.position = vectorLerp(cam.position, addVectors(cam.position, multiplyVector(moveCam, dt * 3)), 0.05);
+		screenWorldCtx.clearRect(0, 0, width, height);
+		fogCtx.clearRect(0, 0, screenWorld.width, screenWorld.height);
+		maskCtx.clearRect(0, 0, screenWorld.width, screenWorld.height);
 		// fogCtx.fillStyle = "rgba(0,0,0,0.8)";
 		// fogCtx.fillRect(0, 0, width, height);
-		worldCtx.drawImage(cam.texture, 0, 0, width, height)
+		screenWorldCtx.drawImage(cam.texture, 0, 0, width, height)
 	}
 
 
