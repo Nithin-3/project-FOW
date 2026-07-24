@@ -7,20 +7,21 @@ import { drawRandomPolygon } from "./shape/draw";
 import type { Polygon, Vector2D } from "./types";
 import type { tri } from "./classes/triangle";
 import { vectorLerp } from "./utils";
+import { player } from "./classes/player";
 
 
 const fog = document.getElementById('fog') as HTMLCanvasElement;
-export const hud = document.getElementById('HUD') as HTMLCanvasElement;
-export const world = document.querySelector<HTMLCanvasElement>("#world")!;
-export const maskLayer = new OffscreenCanvas(window.innerWidth, window.innerHeight);
-export const maskCtx = maskLayer.getContext('2d')!;
-export const worldCtx = world.getContext('2d')!;
-export const fogCtx = fog.getContext('2d')!;
-export const hudCtx = hud.getContext('2d')!;
+const hud = document.getElementById('HUD') as HTMLCanvasElement;
+const screenWorld = document.querySelector<HTMLCanvasElement>("#world")!;
+const maskLayer = new OffscreenCanvas(window.innerWidth, window.innerHeight);
+const maskCtx = maskLayer.getContext('2d')!;
+const screenWorldCtx = screenWorld.getContext('2d')!;
+const fogCtx = fog.getContext('2d')!;
+const hudCtx = hud.getContext('2d')!;
 
-let cameraWidth = 1000
-export const setCameraWidth = (w: number) => {
-	cameraWidth = w;
+let cameraWidth = 500
+const setCameraWidth = (w: number) => {
+	cameraWidth = Math.min(1500, Math.max(500, w));
 	cam.updateSize(cameraWidth, getHeight(cameraWidth));
 };
 
@@ -28,11 +29,11 @@ const worldSize = { v1: { x: -4100, y: -4100 }, v2: { x: 2100, y: 2100 } };
 const getWorldInfo = (world: any) => ({ width: world.v2.x - world.v1.x, height: world.v2.y - world.v1.y, offsetX: -world.v1.x, offsetY: -world.v1.y, });
 
 
-export const getHeight = (width: number): number => (width / (window.innerWidth / window.innerHeight));
+const getHeight = (width: number): number => (width / (window.innerWidth / window.innerHeight));
 
-export const staticQuad = new Quad<GameObject>(worldSize, 20)
-export const triQuad = new Quad<tri>(worldSize, 50)
-export const cam = new Camera({ loc: { x: -2000, y: -2000 }, width: cameraWidth, height: getHeight(cameraWidth) })
+const staticQuad = new Quad<GameObject>(worldSize, 20)
+const triQuad = new Quad<tri>(worldSize, 50)
+const cam = new Camera({ x: -2000, y: -2000 }, cameraWidth, getHeight(cameraWidth))
 
 
 const randomRange = (min: number, max: number) => Math.random() * (max - min) + min;
@@ -47,7 +48,7 @@ const browns = [
 ];
 
 
-for (let i = 0; i < 300; i++) {
+for (let i = 0; i < 100; i++) {
 	const x = randomRange(worldSize.v1.x, worldSize.v2.x);
 	const y = randomRange(worldSize.v1.y, worldSize.v2.y);
 	const points = 3 + Math.floor(Math.random() * 14);
@@ -66,7 +67,7 @@ type WorldInfo = {
 
 const info = getWorldInfo(worldSize);
 
-export const staticTexture = new OffscreenCanvas(info.width, info.height) as OffscreenCanvas & { info: WorldInfo };
+const staticTexture = new OffscreenCanvas(info.width, info.height) as OffscreenCanvas & { info: WorldInfo };
 staticTexture.info = info;
 
 function loadImage(src: string): Promise<HTMLImageElement> {
@@ -95,24 +96,24 @@ const worldRect: Polygon = [worldSize.v1, { x: worldSize.v1.x, y: worldSize.v2.y
 
 triangulate(worldRect, triQuad, staticObj.map(o => o.points));
 
+const x = randomRange(worldSize.v1.x, worldSize.v2.x);
+const y = randomRange(worldSize.v1.y, worldSize.v2.y);
+const Player = new player(triQuad.getLeafQuad({ x, y }).values().next().value!.center);
+
 for (const o of staticObj) {
 
 	const { v1, v2 } = o.boundingBox()
 	o.render(ctx, v1, v2)
 	if (o.door?.length) {
 		for (let i = 0; i < o.door.length; i += 2) {
-
 			const a = o.door[i];
 			const b = o.door[i + 1];
-
-			const mid = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
-			const angle = Math.atan2(b.y - a.y, b.x - a.x);
-			ctx.save();
-			ctx.translate(mid.x, mid.y);
-			ctx.rotate(angle);
-			ctx.fillStyle = "#FFD700";
-			ctx.fillRect(-8, -4, 16, 8);
-			ctx.restore();
+			ctx.strokeStyle = "#FFD700";
+			ctx.lineWidth = 4;
+			ctx.beginPath();
+			ctx.moveTo(a.x, a.y);
+			ctx.lineTo(b.x, b.y);
+			ctx.stroke();
 
 		}
 
@@ -130,7 +131,6 @@ for (const o of staticObj) {
 					for (const t of candidates) {
 						if (t.hasEdge(dupDoor[d], dupDoor[d + 1]) && t !== triangles[i]) {
 							if (t.insert(triangles[i])) {
-								triangles[i].weight = 4
 								dupDoor.splice(d, 2);
 								break;
 							}
@@ -165,7 +165,7 @@ ctx.strokeStyle = "#663399"
 ctx.stroke()
 
 
-const drawArrow = (ctx: OffscreenCanvasRenderingContext2D, from: Vector2D, to: Vector2D, size = 15) => {
+const drawArrow = (ctx: OffscreenCanvasRenderingContext2D, from: Vector2D, to: Vector2D, size = 5) => {
 	const angle = Math.atan2(to.y - from.y, to.x - from.x);
 	ctx.beginPath();
 	ctx.moveTo(from.x, from.y);
@@ -179,20 +179,20 @@ const drawArrow = (ctx: OffscreenCanvasRenderingContext2D, from: Vector2D, to: V
 	ctx.fill();
 };
 
-ctx.lineWidth = 1;
-ctx.strokeStyle = "cyan";
-ctx.fillStyle = "rgba(255, 127, 255,0.3)";
-for (const poly of triQuad.getAll()) {
-	ctx.beginPath();
-	ctx.moveTo(poly.vertex[0].x, poly.vertex[0].y);
-	for (let i = 1; i < poly.vertex.length; i++)
-		ctx.lineTo(poly.vertex[i].x, poly.vertex[i].y);
-	ctx.closePath();
-	ctx.fill();
-	ctx.stroke()
-}
+// ctx.lineWidth = 1;
+// ctx.strokeStyle = "cyan";
+// ctx.fillStyle = "rgba(255, 127, 255,0.3)";
+// for (const poly of triQuad.getAll()) {
+// 	ctx.beginPath();
+// 	ctx.moveTo(poly.vertex[0].x, poly.vertex[0].y);
+// 	for (let i = 1; i < poly.vertex.length; i++)
+// 		ctx.lineTo(poly.vertex[i].x, poly.vertex[i].y);
+// 	ctx.closePath();
+// 	ctx.fill();
+// 	ctx.stroke()
+// }
 
-ctx.lineWidth = 3;
+ctx.lineWidth = 1;
 ctx.strokeStyle = "#000000";
 ctx.fillStyle = "#000000";
 for (const tri of triQuad.getAll()) {
@@ -203,14 +203,14 @@ for (const tri of triQuad.getAll()) {
 
 
 
-export let edge: number = 0;
+let edge: number = 0;
 function resizeCanvas() {
 	hud.width = window.innerWidth;
 	hud.height = window.innerHeight;
 	fog.width = window.innerWidth;
 	fog.height = window.innerHeight;
-	world.width = window.innerWidth;
-	world.height = window.innerHeight;
+	screenWorld.width = window.innerWidth;
+	screenWorld.height = window.innerHeight;
 	maskLayer.width = window.innerWidth;
 	maskLayer.height = window.innerHeight;
 	edge = Math.min(window.innerWidth, window.innerHeight) * 0.1
@@ -219,4 +219,8 @@ function resizeCanvas() {
 }
 resizeCanvas();
 window.addEventListener('resize', resizeCanvas);
+
+cam.addMovable(Player);
+export { hud, screenWorld, maskLayer, maskCtx, screenWorldCtx, fogCtx, hudCtx, setCameraWidth, getHeight, staticQuad, triQuad, cam, staticTexture, edge, Player };
+
 
