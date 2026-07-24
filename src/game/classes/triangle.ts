@@ -13,7 +13,6 @@ export class tri extends Entity {
 	readonly center: Vector2D;
 	neighbors: Neighbor[] = [];
 
-	weight: number = 1;
 	COST_F: number = Infinity;
 	COST_B: number = Infinity;
 	DIST_F: number = Infinity;

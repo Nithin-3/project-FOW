@@ -53,11 +53,10 @@ export const dijkstra = async (from: tri, to: tri, source: Vector2D, target: Vec
 
 	const travel = (entity: typeof fTravel, FROM: "FROM_F" | "FROM_B", EDGE: "EDGE_F" | "EDGE_B", timeStamp: "timeStamp_F" | "timeStamp_B", COST: "COST_F" | "COST_B", DIST: "DIST_F" | "DIST_B", TARGET: Vector2D, SOURCE: Vector2D, que: ordQue) => {
 		if (!entity) return;
-
 		for (let n = 0; n < entity.node.neighbors.length; n++) {
 			const nxt = entity.node.neighbors[n].neig;
 			if (!nxt || nxt == entity.node[FROM]) continue;
-			const newCost = entity.node[COST] + entity.node.neighbors[n].dist * nxt.weight;
+			const newCost = entity.node[COST] + entity.node.neighbors[n].dist;
 			if (nxt[timeStamp] === pathId)
 				if (newCost >= nxt[COST]) continue;
 			const line = subtractVectors(entity.visitor, TARGET)
@@ -65,10 +64,10 @@ export const dijkstra = async (from: tri, to: tri, source: Vector2D, target: Vec
 			let bestDist = Infinity;
 			let bestPoint: Vector2D = nxt.center;
 			for (const p of candidates) {
-				const d = Math.abs(crossProduct(strictLine, subtractVectors(SOURCE, p)));
+				const d = Math.abs(crossProduct(line, subtractVectors(SOURCE, p)));
 				if (d < bestDist) { bestDist = d; bestPoint = p; }
 			}
-			const newDist = distSq(bestPoint, TARGET) * (1 + bestDist) * (1 + Math.abs(crossProduct(line, subtractVectors(SOURCE, bestPoint))));
+			const newDist = distSq(bestPoint, TARGET) * (1 + bestDist) * (1 + Math.abs(crossProduct(strictLine, subtractVectors(SOURCE, bestPoint))));
 			if (!que.insert(nxt, newCost, newDist, bestPoint)) continue;
 			nxt[COST] = newCost;
 			nxt[DIST] = newDist;
@@ -101,12 +100,7 @@ export const dijkstra = async (from: tri, to: tri, source: Vector2D, target: Vec
 		}
 
 	}
-
-
-	console.error(`A* no path:
-	from neighbors=${from.neighbors.length}
-	to neighbors=${to.neighbors.length}`);
-	return done([]);
+	throw "unreachable path"
 };
 
 const buildPath = (meet: tri): [Vector2D, Vector2D][] => {
