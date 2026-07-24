@@ -1,11 +1,22 @@
 import { GameObject } from "./GameObject";
 import { Light } from "./light";
 import type { Color, Polygon, Vector2D } from "../types";
+import { dijkstra } from "../A*";
+import { triQuad } from "../init";
+import { pointInPolygon } from "../tools";
+import type { tri } from "./triangle";
+import { tuneingPath } from "../tunePath";
 
 
 
 export class player extends GameObject {
-	loc: Vector2D;
+	private _loc: Vector2D;
+	public get loc(): Vector2D {
+		return this._loc;
+	}
+	public set loc(value: Vector2D) {
+		this._loc = value;
+	}
 	shadow: Light;
 	constructor(loc: Vector2D) {
 		const points: Polygon = [
@@ -15,16 +26,18 @@ export class player extends GameObject {
 			{ x: 10, y: 10 },
 			{ x: 5, y: 0 },
 		];
-		super(0, points, "#00ff00" as Color)
+		super(0, points, "#00ffff" as Color)
 		this.collision = true;
-		this.loc = loc;
+		this._loc = loc;
 		this.shadow = new Light(100);
 	}
 	boundingBox(): { v1: Vector2D; v2: Vector2D; } {
 		const box = super.boundingBox()
-		const width = (box.v2.x - box.v1.x);
-		const height = (box.v2.y - box.v1.y);
-		return { v1: { x: this.loc.x - width, y: this.loc.y - height }, v2: { x: this.loc.x + width, y: this.loc.y + height } }
+		return { v1: { x: this._loc.x + box.v1.x, y: this._loc.y + box.v1.y }, v2: { x: this._loc.x + box.v2.x, y: this._loc.y + box.v2.y } }
+	}
+
+	superBox(): { v1: Vector2D; v2: Vector2D; } {
+		return this.shadow.worldBox(this._loc)
 	}
 
 	render(ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D, origin: Vector2D, end: Vector2D): void {
@@ -34,23 +47,42 @@ export class player extends GameObject {
 		const boxW = box.v2.x - box.v1.x;
 		const boxH = box.v2.y - box.v1.y;
 
-		const scaleX = (end.x - origin.x) / (boxW * 2);
-		const scaleY = (end.y - origin.y) / (boxH * 2);
+		const scaleX = (end.x - origin.x) / boxW;
+		const scaleY = (end.y - origin.y) / boxH;
 
-		const camTL = { x: this.loc.x - boxW - origin.x / scaleX, y: this.loc.y - boxH - origin.y / scaleY, };
+		const camTL = { x: this._loc.x - origin.x / scaleX, y: this._loc.y - origin.y / scaleY };
 
-		this.shadow.render(this.loc, this.zIndex, (b) => ({
+		this.shadow.render(this._loc, this.zIndex, (b) => ({
 			v1: { x: (b.v1.x - camTL.x) * scaleX, y: (b.v1.y - camTL.y) * scaleY },
 			v2: { x: (b.v2.x - camTL.x) * scaleX, y: (b.v2.y - camTL.y) * scaleY },
 		}));
 	}
 
 
-	findPath(to:Vector2D){
-		to
+	async findPath(to: Vector2D) {
+		let fromTri: tri | undefined;
+		let toTri: tri | undefined;
+		for (const v of triQuad.getLeafQuad(this._loc)) {
+			if (pointInPolygon(this._loc, v.vertex)) {
+				fromTri = v;
+				continue;
+			}
+			if (pointInPolygon(to, v.vertex)) {
+				toTri = v;
+				continue;
+			}
+		}
 
-		// TODO: find path
+		if (!toTri)
+			for (const v of triQuad.getLeafQuad(to)) {
+				if (pointInPolygon(to, v.vertex)) {
+					toTri = v;
+					break;
+				}
+			}
 
+		if (!fromTri || !toTri) return [];
+		return tuneingPath(this._loc, to, await dijkstra(fromTri, toTri, this._loc, to));
 	}
 
 }
