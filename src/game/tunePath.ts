@@ -32,6 +32,8 @@ export function tuneingPath(source: Vector2D, target: Vector2D, portals: [Vector
 
 	}
 
+				debug(left,"blue")
+				debug(right,"orange")
 
 	for (let i = 1; i < portals.length; i++) {
 		const [pL, pR] = portals[i];
