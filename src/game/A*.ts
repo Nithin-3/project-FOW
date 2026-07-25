@@ -100,7 +100,7 @@ export const dijkstra = async (from: tri, to: tri, source: Vector2D, target: Vec
 		}
 
 	}
-	throw "unreachable path"
+	throw new Error("unreachable path");
 };
 
 const buildPath = (meet: tri): [Vector2D, Vector2D][] => {

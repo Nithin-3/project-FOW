@@ -1,4 +1,5 @@
-import { cam, hud, hudCtx, screenWorld, screenWorldCtx, edge, fogCtx, maskCtx, setCameraWidth, Player } from "./game/init";
+import { hud, hudCtx, screenWorld, screenWorldCtx, camera } from "./game/setup";
+import { edge, setCameraWidth, Player } from "./game/init";
 import type { Vector2D } from "./game/types";
 import { addVectors, multiplyVector, normalizeVector, subtractVectors, vectorLerp } from "./game/utils";
 
@@ -35,21 +36,16 @@ document.addEventListener("keyup", (event) => {
 hud.onclick = async (e) => {
 	const x = e.offsetX;
 	const y = e.offsetY;
-	const loc = cam.screen2world({ x, y })
-
-	// fogCtx.clearRect(0, 0, world.width, world.height);
-	// maskCtx.globalCompositeOperation = "lighter";
-	// maskCtx.drawImage(pl.shadow.texture, 0, 0);
+	const loc = camera.primary.screen2world({ x, y })
 
 	if (e.ctrlKey) {
-		const walk = await Player.findPath(loc)
+		const walk = await Player!.findPath(loc)
 		screenWorldCtx.beginPath();
-		const a = cam.world2screen(walk[0]);
+		const a = camera.primary.world2screen(walk[0]);
 		screenWorldCtx.moveTo(a.x, a.y);
 		for (let w = 1; w < walk.length; w++) {
-			const a = cam.world2screen(walk[w]);
+			const a = camera.primary.world2screen(walk[w]);
 			screenWorldCtx.lineTo(a.x, a.y);
-			// worldCtx.arc(a.x, a.y, 8, 0, Math.PI * 2)
 		}
 		screenWorldCtx.strokeStyle = "#ffffff";
 		screenWorldCtx.lineWidth = 2;
@@ -87,7 +83,7 @@ hud.onmouseleave = () => moveCam = { x: 0, y: 0 };
 
 hud.onwheel = (e) => {
 	const factor = e.deltaY > 0 ? 1.1 : 0.9;
-	setCameraWidth(cam.texture.width * factor);
+	setCameraWidth(camera.primary.texture.width * factor);
 };
 
 function drawDebug(ctx: CanvasRenderingContext2D, items: Record<string, string | number>, x = 10, y = 10, lineH = 15) {
@@ -114,84 +110,11 @@ function gameloop() {
 	const { width, height } = screenWorld;
 
 	if (moveCam.x !== 0 || moveCam.y !== 0) {
-		cam.position = vectorLerp(cam.position, addVectors(cam.position, multiplyVector(moveCam, dt * 3)), 0.05);
+		camera.primary.position = vectorLerp(camera.primary.position, addVectors(camera.primary.position, multiplyVector(moveCam, dt * 3)), 0.05);
 		screenWorldCtx.clearRect(0, 0, width, height);
-		fogCtx.clearRect(0, 0, screenWorld.width, screenWorld.height);
-		maskCtx.clearRect(0, 0, screenWorld.width, screenWorld.height);
-		// fogCtx.fillStyle = "rgba(0,0,0,0.8)";
-		// fogCtx.fillRect(0, 0, width, height);
-		screenWorldCtx.drawImage(cam.texture, 0, 0, width, height)
+		screenWorldCtx.drawImage(camera.primary.texture, 0, 0, width, height)
 	}
 
-
-	// fogCtx.clearRect(0, 0, width, height);
-	// fogCtx.fillStyle = "rgba(0,0,0,0.8)";
-	// fogCtx.fillRect(0, 0, width, height);
-	// fogCtx.globalCompositeOperation = "destination-out";
-	// fogCtx.drawImage(maskLayer, 0, 0);
-	// fogCtx.globalCompositeOperation = "source-over";
-
-	// const localLight: { inst: Light; l: { x: number, y: number, r: number }; poly: Polygon[] }[] = []
-	// lights.forEach(v => {
-	// 	const box = v.boundingBox()
-	// 	if (!Entity.isRender(box, cam.boundingBox())) return;
-	// 	const lightView = quad.getBB(box);
-	// 	const visiblePolys: Polygon[] = []
-	// 	const l1 = cam.world2screen(v.boundingBox().v1)
-	// 	const l2 = cam.world2screen(v.boundingBox().v2)
-	// 	const lwidth = (l2.x - l1.x) / 2;
-	// 	const lheight = (l2.y - l1.y) / 2;
-	// 	const screenPos = { x: l1.x + lwidth, y: l1.y + lheight };
-	// 	for (const o of lightView) {
-	// 		const v1 = cam.world2screen(o.boundingBox().v1)
-	// 		const v2 = cam.world2screen(o.boundingBox().v2)
-	// 		if (!Entity.isRender({ v1, v2 }, { v1: l1, v2: l2 })) continue;
-	// 		const localPoints = o.localPoints(v1, v2)
-	// 		visiblePolys.push(localPoints)
-	// 		totpolyLigPnt += localPoints.length
-	// 		// NOTE: debug line
-	// 		const center = vectorLerp(v1, v2, 0.5)
-	//
-	// 		fogCtx.beginPath();
-	// 		fogCtx.lineWidth = 1
-	// 		fogCtx.moveTo(screenPos.x, screenPos.y);
-	// 		fogCtx.lineTo(center.x, center.y);
-	// 		fogCtx.strokeStyle = "red"
-	// 		fogCtx.stroke()
-	// 	}
-	// 	localLight.push({ inst: v, l: { x: l1.x + lwidth, y: l1.y + lheight, r: lheight < lwidth ? lheight : lwidth }, poly: visiblePolys });
-	// 	// NOTE: debug border 
-	// 	fogCtx.beginPath()
-	// 	fogCtx.lineWidth = 1;
-	// 	fogCtx.rect(l1.x, l1.y, l2.x - l1.x, l2.y - l1.y);
-	// 	fogCtx.strokeStyle = "red"
-	// 	fogCtx.stroke()
-	// })
-	//
-	//
-	// _ensureVisCanvas(width, height);
-	// _visCtx!.clearRect(0, 0, width, height);
-	//
-	// _ensureLightCanvases(width, height, localLight.length);
-	// for (let i = 0; i < localLight.length; i++) {
-	// 	const light = localLight[i];
-	// 	const ctx = _lightCtxs[i];
-	// 	ctx.clearRect(0, 0, width, height);
-	//
-	// 	ctx.fillStyle = "white";
-	// 	ctx.beginPath();
-	// 	ctx.arc(light.l.x, light.l.y, light.l.r, 0, Math.PI * 2);
-	// 	ctx.fill();
-	//
-	// 	ctx.globalCompositeOperation = "destination-out";
-	// 	Light.drawshadow(ctx, { x: light.l.x, y: light.l.y }, light.l.r, light.poly, "#fff" as any);
-	// 	ctx.globalCompositeOperation = "source-over";
-	//
-	// 	_visCtx!.globalCompositeOperation = "lighter";
-	// 	_visCtx!.drawImage(_lightCanvases[i], 0, 0);
-	// }
-	//
-	//
 	if (acc >= 1000) {
 		const avg = frameCount;
 		frameCount = 0;

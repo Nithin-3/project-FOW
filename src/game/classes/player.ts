@@ -33,7 +33,10 @@ export class player extends GameObject {
 	}
 	boundingBox(): { v1: Vector2D; v2: Vector2D; } {
 		const box = super.boundingBox()
-		return { v1: { x: this._loc.x + box.v1.x, y: this._loc.y + box.v1.y }, v2: { x: this._loc.x + box.v2.x, y: this._loc.y + box.v2.y } }
+		const dx = this._loc.x - (box.v1.x + box.v2.x) / 2;
+		const dy = this._loc.y - (box.v1.y + box.v2.y) / 2;
+		return { v1: { x: box.v1.x + dx, y: box.v1.y + dy, }, v2: { x: box.v2.x + dx, y: box.v2.y + dy, }, };
+
 	}
 
 	superBox(): { v1: Vector2D; v2: Vector2D; } {
@@ -42,20 +45,7 @@ export class player extends GameObject {
 
 	render(ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D, origin: Vector2D, end: Vector2D): void {
 		super.render(ctx, origin, end);
-
-		const box = super.boundingBox()
-		const boxW = box.v2.x - box.v1.x;
-		const boxH = box.v2.y - box.v1.y;
-
-		const scaleX = (end.x - origin.x) / boxW;
-		const scaleY = (end.y - origin.y) / boxH;
-
-		const camTL = { x: this._loc.x - origin.x / scaleX, y: this._loc.y - origin.y / scaleY };
-
-		this.shadow.render(this._loc, this.zIndex, (b) => ({
-			v1: { x: (b.v1.x - camTL.x) * scaleX, y: (b.v1.y - camTL.y) * scaleY },
-			v2: { x: (b.v2.x - camTL.x) * scaleX, y: (b.v2.y - camTL.y) * scaleY },
-		}));
+		this.shadow.render(this._loc, this.zIndex);
 	}
 
 
