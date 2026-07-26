@@ -17,12 +17,7 @@ function orientEdge(edge: [Vector2D, Vector2D], dir: Vector2D): [Vector2D, Vecto
 }
 
 export const dijkstra = async (from: tri, to: tri, source: Vector2D, target: Vector2D): Promise<[Vector2D, Vector2D][]> => {
-	const start = performance.now();
-	const done = (path: [Vector2D, Vector2D][]): [Vector2D, Vector2D][] => {
-		console.log(`A* ${path.length ? 'found' : 'no path'} (${performance.now() - start}ms)`);
-		return path;
-	};
-	if (from === to) return done([]);
+	if (from === to) return [];
 	const pathId: number = Uid.next().value!;
 	const strictLine = subtractVectors(target, source);
 
@@ -81,9 +76,9 @@ export const dijkstra = async (from: tri, to: tri, source: Vector2D, target: Vec
 
 	while (fTravel || bTravel) {
 		if (fTravel && fTravel.node.timeStamp_F === fTravel.node.timeStamp_B)
-			return done(buildPath(fTravel.node));
+			return buildPath(fTravel.node);
 		if (bTravel && bTravel.node.timeStamp_F === bTravel.node.timeStamp_B)
-			return done(buildPath(bTravel.node));
+			return buildPath(bTravel.node);
 
 		if (fTravel) {
 			travel(fTravel, "FROM_F", "EDGE_F", "timeStamp_F", "COST_F", "DIST_F", target, source, fQue);
@@ -100,7 +95,7 @@ export const dijkstra = async (from: tri, to: tri, source: Vector2D, target: Vec
 		}
 
 	}
-	throw new Error("unreachable path");
+	throw "unreachable path";
 };
 
 const buildPath = (meet: tri): [Vector2D, Vector2D][] => {

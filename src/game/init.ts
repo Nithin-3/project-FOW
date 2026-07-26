@@ -101,17 +101,7 @@ camera['primary'] = new Camera({ x: -2000, y: -2000 }, cameraWidth, getHeight(ca
 
 const x = randomRange(worldSize.v1.x + 1000, worldSize.v2.x - 1000);
 const y = randomRange(worldSize.v1.y + 1000, worldSize.v2.y - 1000);
-// const triang = [...triQuad.getLeafQuad({ x, y })]
-// const choose = randomRange(3,triang.length-5)
-let Player : player|null = null;
-// for(let t=0;t<triang.length;t++){
-// 	if(t==choose){
-// 		Player = new player(triang[t].center)
-// 		break;
-//
-// 	}
-// }
-Player = Player ?? new player({x,y} )
+const Player = new player({x,y} )
 movables.push(Player)
 
 

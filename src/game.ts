@@ -5,7 +5,6 @@ import { addVectors, multiplyVector, normalizeVector, subtractVectors, vectorLer
 
 
 let moveCam: Vector2D = { x: 0, y: 0 };
-// let movePl: Vector2D = { x: 0, y: 0 };
 document.addEventListener("keydown", (event) => {
 	switch (event.key) {
 		case "h":
@@ -37,7 +36,6 @@ hud.onclick = async (e) => {
 	const x = e.offsetX;
 	const y = e.offsetY;
 	const loc = camera.primary.screen2world({ x, y })
-
 	if (e.ctrlKey) {
 		const walk = await Player!.findPath(loc)
 		screenWorldCtx.beginPath();
@@ -56,20 +54,16 @@ hud.onclick = async (e) => {
 hud.onmousemove = (e) => {
 	const x = e.offsetX;
 	const y = e.offsetY;
-
 	hudCtx.beginPath();
 	hudCtx.arc(x, y, 3, 0, Math.PI * 2);
 	hudCtx.strokeStyle = "red";
 	hudCtx.lineWidth = 3;
 	hudCtx.stroke();
-
-
 	if (x <= edge || x >= hud.width - edge || y <= edge || y >= hud.height - edge) {
 		moveCam = normalizeVector(subtractVectors(
 			{ x, y },
 			{ x: hud.width / 2, y: hud.height / 2 }
 		));
-
 		hudCtx.beginPath();
 		hudCtx.arc(x, y, 6, 0, Math.PI * 2);
 		hudCtx.fillStyle = "green";
