@@ -6,6 +6,7 @@ import { triQuad } from "../init";
 import { pointInPolygon } from "../tools";
 import type { tri } from "./triangle";
 import { tuneingPath } from "../tunePath";
+import { camera } from "../setup";
 
 
 
@@ -15,7 +16,11 @@ export class player extends GameObject {
 		return this._loc;
 	}
 	public set loc(value: Vector2D) {
+		const keys = Object.keys(camera)
+		for(const c of keys)
+			camera[c].updateMovement(this)
 		this._loc = value;
+
 	}
 	shadow: Light;
 	constructor(loc: Vector2D) {
