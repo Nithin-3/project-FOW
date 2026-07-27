@@ -16,7 +16,7 @@ export class Camera extends Entity {
 	private _scaleX = 1;
 	private _scaleY = 1;
 
-	texture: OffscreenCanvas;
+	private _texture: OffscreenCanvas;
 	private ctx: OffscreenCanvasRenderingContext2D;
 
 	private movementLayer: OffscreenCanvas;
@@ -30,30 +30,37 @@ export class Camera extends Entity {
 	private shanMogh = new Map<number, [Vector2D, number, number]>();
 	private anjana = new Map<number, [Vector2D, number, number]>();
 
+	private draw = true;
+
 	get position(): Vector2D { return this.loc }
 	set position(v: Vector2D) {
 		this.loc = v;
 		this._updateBounds();
 		for (const m of movables)
 			this.updateMovement(m)
-		this.render();
+		this.draw = true;
 	}
+
+	get texture(): OffscreenCanvas { this.draw = false; return this._texture; }
+
+	get stateChanged(): boolean { return this.draw }
+
 
 	constructor(loc: Vector2D, width: number, height: number) {
 		super()
 		this.cam = { width, height };
 		this.loc = loc;
-		this._updateBounds();
-		this._ensureScale(window.innerWidth, window.innerHeight);
-		this.texture = new OffscreenCanvas(this.cam.width, this.cam.height);
+		this._texture = new OffscreenCanvas(this.cam.width, this.cam.height);
 		this.movementLayer = new OffscreenCanvas(this.cam.width, this.cam.height);
 		this.fogLayer = new OffscreenCanvas(this.cam.width, this.cam.height);
 		this.fogMask = new OffscreenCanvas(this.cam.width, this.cam.height);
-		this.ctx = this.texture.getContext('2d')!;
+		this.ctx = this._texture.getContext('2d')!;
 		this.movementCtx = this.movementLayer.getContext('2d')!;
 		this.fogCtx = this.fogLayer.getContext('2d')!;
 		this.maskCtx = this.fogMask.getContext('2d')!;
 
+		this._updateBounds();
+		this._ensureScale(window.innerWidth, window.innerHeight);
 		window.addEventListener("resize", () => this._ensureScale(window.innerWidth, window.innerHeight))
 	}
 
@@ -78,17 +85,16 @@ export class Camera extends Entity {
 		this._updateBounds();
 		this._scaleX = this.SW / width;
 		this._scaleY = this.SH / height;
-		if (this.texture) {
-			this.fogLayer.width = width;
-			this.fogLayer.height = height;
-			this.fogMask.width = width;
-			this.fogMask.height = height;
-			this.movementLayer.width = width;
-			this.movementLayer.height = height;
-			this.texture.width = width;
-			this.texture.height = height;
-			this.render()
-		}
+		this.fogLayer.width = width;
+		this.fogLayer.height = height;
+		this.fogMask.width = width;
+		this.fogMask.height = height;
+		this.movementLayer.width = width;
+		this.movementLayer.height = height;
+		this._texture.width = width;
+		this._texture.height = height;
+		for (const m of movables)
+			this.updateMovement(m)
 	}
 
 	updateMovement(entity: GameObject) {
@@ -124,6 +130,7 @@ export class Camera extends Entity {
 			this.maskCtx.globalCompositeOperation = "source-over";
 
 		}
+		this.draw = true;
 	}
 
 	private clearMovement(entityID: number) {
@@ -132,12 +139,14 @@ export class Camera extends Entity {
 			// TODO: check any other entity share this box
 			this.movementCtx.clearRect(clr[0].x, clr[0].y, clr[1], clr[2])
 			this.shanMogh.delete(entityID)
+			this.draw = true;
 		}
 		clr = this.anjana.get(entityID)
 		if (clr) {
 			// TODO: check any other entity share this box
 			this.maskCtx.clearRect(clr[0].x, clr[0].y, clr[1], clr[2])
 			this.anjana.delete(entityID)
+			this.draw = true;
 		}
 	}
 
@@ -155,7 +164,7 @@ export class Camera extends Entity {
 
 	render() {
 		if (!staticTexture) return;
-		this.ctx.clearRect(0, 0, this.texture.width, this.texture.height)
+		this.ctx.clearRect(0, 0, this._texture.width, this._texture.height)
 		const sx = this.loc.x + staticTexture.info.offsetX
 		const sy = this.loc.y + staticTexture.info.offsetY
 		this.ctx.drawImage(staticTexture, sx, sy, this.cam.width, this.cam.height, 0, 0, this.cam.width, this.cam.height)

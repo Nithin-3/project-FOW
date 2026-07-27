@@ -105,6 +105,10 @@ function gameloop() {
 
 	if (moveCam.x !== 0 || moveCam.y !== 0) {
 		camera.primary.position = vectorLerp(camera.primary.position, addVectors(camera.primary.position, multiplyVector(moveCam, dt * 3)), 0.05);
+	}
+
+	if(camera.primary.stateChanged){
+		camera.primary.render()
 		screenWorldCtx.clearRect(0, 0, width, height);
 		screenWorldCtx.drawImage(camera.primary.texture, 0, 0, width, height)
 	}
