@@ -105,43 +105,43 @@ const Player = new player({x,y} )
 movables.push(Player)
 
 
-const drawArrow = (ctx: OffscreenCanvasRenderingContext2D, from: Vector2D, to: Vector2D, size = 5) => {
-	const angle = Math.atan2(to.y - from.y, to.x - from.x);
-	ctx.beginPath();
-	ctx.moveTo(from.x, from.y);
-	ctx.lineTo(to.x, to.y);
-	ctx.stroke();
-	ctx.beginPath();
-	ctx.moveTo(to.x, to.y);
-	ctx.lineTo(to.x - size * Math.cos(angle - Math.PI / 6), to.y - size * Math.sin(angle - Math.PI / 6));
-	ctx.lineTo(to.x - size * Math.cos(angle + Math.PI / 6), to.y - size * Math.sin(angle + Math.PI / 6));
-	ctx.closePath();
-	ctx.fill();
-};
-
-ctx.lineWidth = 1;
-ctx.strokeStyle = "cyan";
-ctx.fillStyle = "rgba(255, 127, 255,0.3)";
-for (const poly of triQuad.getAll()) {
-	ctx.beginPath();
-	ctx.moveTo(poly.vertex[0].x, poly.vertex[0].y);
-	for (let i = 1; i < poly.vertex.length; i++)
-		ctx.lineTo(poly.vertex[i].x, poly.vertex[i].y);
-	ctx.closePath();
-	ctx.fill();
-	ctx.stroke()
-}
-
-ctx.lineWidth = 1;
-ctx.strokeStyle = "#000000";
-ctx.fillStyle = "#000000";
-for (const tri of triQuad.getAll()) {
-	for (let n = 0; n < tri.neighbors.length; n++) {
-		drawArrow(ctx, vectorLerp(tri.neighbors[n].edge[0], tri.neighbors[n].edge[1], 0.5), tri.neighbors[n].neig.center);
-	}
-}
-
-
+// const drawArrow = (ctx: OffscreenCanvasRenderingContext2D, from: Vector2D, to: Vector2D, size = 5) => {
+// 	const angle = Math.atan2(to.y - from.y, to.x - from.x);
+// 	ctx.beginPath();
+// 	ctx.moveTo(from.x, from.y);
+// 	ctx.lineTo(to.x, to.y);
+// 	ctx.stroke();
+// 	ctx.beginPath();
+// 	ctx.moveTo(to.x, to.y);
+// 	ctx.lineTo(to.x - size * Math.cos(angle - Math.PI / 6), to.y - size * Math.sin(angle - Math.PI / 6));
+// 	ctx.lineTo(to.x - size * Math.cos(angle + Math.PI / 6), to.y - size * Math.sin(angle + Math.PI / 6));
+// 	ctx.closePath();
+// 	ctx.fill();
+// };
+//
+// ctx.lineWidth = 1;
+// ctx.strokeStyle = "cyan";
+// ctx.fillStyle = "rgba(255, 127, 255,0.3)";
+// for (const poly of triQuad.getAll()) {
+// 	ctx.beginPath();
+// 	ctx.moveTo(poly.vertex[0].x, poly.vertex[0].y);
+// 	for (let i = 1; i < poly.vertex.length; i++)
+// 		ctx.lineTo(poly.vertex[i].x, poly.vertex[i].y);
+// 	ctx.closePath();
+// 	ctx.fill();
+// 	ctx.stroke()
+// }
+//
+// ctx.lineWidth = 1;
+// ctx.strokeStyle = "#000000";
+// ctx.fillStyle = "#000000";
+// for (const tri of triQuad.getAll()) {
+// 	for (let n = 0; n < tri.neighbors.length; n++) {
+// 		drawArrow(ctx, vectorLerp(tri.neighbors[n].edge[0], tri.neighbors[n].edge[1], 0.5), tri.neighbors[n].neig.center);
+// 	}
+// }
+//
+//
 
 let edge: number = 0;
 function resizeCanvas() {
