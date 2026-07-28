@@ -17,11 +17,22 @@ export class player extends GameObject {
 	}
 	public set loc(value: Vector2D) {
 		const keys = Object.keys(camera)
-		for(const c of keys)
+		for (const c of keys)
 			camera[c].updateMovement(this)
 		this._loc = value;
 
 	}
+	private _rotation = 0;
+	public get rotation() {
+		return this._rotation;
+	}
+	public set rotation(value) {
+		const keys = Object.keys(camera)
+		for (const c of keys)
+			camera[c].updateMovement(this)
+		this._rotation = value;
+	}
+
 	shadow: Light;
 	constructor(loc: Vector2D) {
 		const points: Polygon = [

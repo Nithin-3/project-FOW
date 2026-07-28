@@ -27,7 +27,7 @@ export class Camera extends Entity {
 	private fogMask: OffscreenCanvas;
 	private maskCtx: OffscreenCanvasRenderingContext2D;
 
-	private shanMogh = new Map<number, [Vector2D, number, number]>();
+	private shanMogh = new Map<number, [Vector2D, number, number, number]>();
 	private anjana = new Map<number, [Vector2D, number, number]>();
 
 	private draw = true;
@@ -95,6 +95,7 @@ export class Camera extends Entity {
 		this._texture.height = height;
 		for (const m of movables)
 			this.updateMovement(m)
+		this.draw = true
 	}
 
 	updateMovement(entity: GameObject) {
@@ -102,16 +103,37 @@ export class Camera extends Entity {
 		if (!Entity.isRender(box, this.boundingBox())) return this.clearMovement(entity.id);
 		const clr = this.shanMogh.get(entity.id)
 		if (clr) {
-			// TODO: check any other entity share this box
-			this.movementCtx.clearRect(clr[0].x, clr[0].y, clr[1], clr[2])
+			if (clr[3] !== 0) {
+				const cx2 = clr[0].x + clr[1] / 2;
+				const cy2 = clr[0].y + clr[2] / 2;
+				this.movementCtx.save();
+				this.movementCtx.translate(cx2, cy2);
+				this.movementCtx.rotate(clr[3]);
+				this.movementCtx.translate(-cx2, -cy2);
+				this.movementCtx.clearRect(clr[0].x, clr[0].y, clr[1], clr[2]);
+				this.movementCtx.restore();
+			} else {
+				this.movementCtx.clearRect(clr[0].x, clr[0].y, clr[1], clr[2]);
+			}
 		}
 		box = entity.boundingBox();
 		const v1 = subtractVectors(box.v1, this.loc);
 		const v2 = subtractVectors(box.v2, this.loc);
 		const width = v2.x - v1.x;
 		const height = v2.y - v1.y;
-		this.shanMogh.set(entity.id, [{ x: v1.x - 1, y: v1.y - 1 }, width + 2, height + 2]);
-		entity.render(this.movementCtx, v1, v2);
+		this.shanMogh.set(entity.id, [{ x: v1.x - 1, y: v1.y - 1 }, width + 2, height + 2, "rotation" in entity ? (entity.rotation as number) : 0]);
+		if ("rotation" in entity && entity.rotation !== 0 && typeof entity.rotation === "number") {
+		const cx = v1.x + width / 2;
+		const cy = v1.y + height / 2;
+			this.movementCtx.save();
+			this.movementCtx.translate(cx, cy);
+			this.movementCtx.rotate(entity.rotation);
+			this.movementCtx.translate(-cx, -cy);
+			entity.render(this.movementCtx, v1, v2);
+			this.movementCtx.restore();
+		} else {
+			entity.render(this.movementCtx, v1, v2);
+		}
 
 		if (entity instanceof player) {
 			const clr = this.anjana.get(entity.id);
@@ -136,15 +158,24 @@ export class Camera extends Entity {
 	private clearMovement(entityID: number) {
 		let clr = this.shanMogh.get(entityID)
 		if (clr) {
-			// TODO: check any other entity share this box
-			this.movementCtx.clearRect(clr[0].x, clr[0].y, clr[1], clr[2])
+			if (clr[3] !== 0) {
+				const cx2 = clr[0].x + clr[1] / 2;
+				const cy2 = clr[0].y + clr[2] / 2;
+				this.movementCtx.save();
+				this.movementCtx.translate(cx2, cy2);
+				this.movementCtx.rotate(clr[3]);
+				this.movementCtx.translate(-cx2, -cy2);
+				this.movementCtx.clearRect(clr[0].x, clr[0].y, clr[1], clr[2]);
+				this.movementCtx.restore();
+			} else {
+				this.movementCtx.clearRect(clr[0].x, clr[0].y, clr[1], clr[2]);
+			}
 			this.shanMogh.delete(entityID)
 			this.draw = true;
 		}
-		clr = this.anjana.get(entityID)
-		if (clr) {
-			// TODO: check any other entity share this box
-			this.maskCtx.clearRect(clr[0].x, clr[0].y, clr[1], clr[2])
+		const anjClr = this.anjana.get(entityID)
+		if (anjClr) {
+			this.maskCtx.clearRect(anjClr[0].x, anjClr[0].y, anjClr[1], anjClr[2])
 			this.anjana.delete(entityID)
 			this.draw = true;
 		}
