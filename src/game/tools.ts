@@ -137,11 +137,14 @@ export function circlePolygonIntersect(o: Vector2D, r: number, polygon: Polygon)
 		const sqrtDisc = Math.sqrt(disc);
 		const t1 = (b - sqrtDisc) / a;
 		const t2 = (b + sqrtDisc) / a;
-		if (t1 >= 0 && t1 <= 1) {
-			pts.push({ x: A.x + t1 * dx, y: A.y + t1 * dy, A, B });
+		const EPS = 1e-9;
+		if (t1 >= -EPS && t1 <= 1 + EPS) {
+			const tc = Math.max(0, Math.min(1, t1));
+			pts.push({ x: A.x + tc * dx, y: A.y + tc * dy, A, B });
 		}
-		if (t2 >= 0 && t2 <= 1 && disc > 0) {
-			pts.push({ x: A.x + t2 * dx, y: A.y + t2 * dy, A, B });
+		if (t2 >= -EPS && t2 <= 1 + EPS && disc > 0) {
+			const tc = Math.max(0, Math.min(1, t2));
+			pts.push({ x: A.x + tc * dx, y: A.y + tc * dy, A, B });
 		}
 	}
 	const unique: (Vector2D & { A: Vector2D; B: Vector2D })[] = [];

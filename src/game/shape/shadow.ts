@@ -462,21 +462,21 @@ export const drawShadow = (ctx: OffscreenCanvasRenderingContext2D, o: Vector2D, 
 			chain.push(b);
 			pair.push(chain);
 		}
-		const endpointIdx = new Map<string, { t: number; atEnd: boolean }>();
-		for (let t = 0; t < pathFin.length; t++) {
-			if (pathFin[t].length === 0) continue;
-			endpointIdx.set(key(pathFin[t][0]), { t, atEnd: false });
-			endpointIdx.set(key(pathFin[t][pathFin[t].length - 1]), { t, atEnd: true });
-		}
-
 		for (const chain of pair) {
 			const a = chain[0];
 			const b = chain[chain.length - 1];
-			const aKey = key(a);
-			const bKey = key(b);
 
-			const aEntry = endpointIdx.get(aKey);
-			const bEntry = endpointIdx.get(bKey);
+			// Scan live fragments for current endpoints
+			let aEntry: { t: number; atEnd: boolean } | undefined;
+			let bEntry: { t: number; atEnd: boolean } | undefined;
+			for (let t = 0; t < pathFin.length; t++) {
+				if (pathFin[t].length === 0) continue;
+				if (samePoint(a, pathFin[t][0])) aEntry = { t, atEnd: false };
+				if (samePoint(a, pathFin[t][pathFin[t].length - 1])) aEntry = { t, atEnd: true };
+				if (samePoint(b, pathFin[t][0])) bEntry = { t, atEnd: false };
+				if (samePoint(b, pathFin[t][pathFin[t].length - 1])) bEntry = { t, atEnd: true };
+			}
+
 			if (!aEntry || !bEntry) continue;
 
 			const aIdx = aEntry.t, aAtEnd = aEntry.atEnd;
