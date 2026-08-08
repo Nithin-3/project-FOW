@@ -67,7 +67,7 @@ for (const o of staticObj) {
 
 		}
 		const dupDoor = [...o.door]
-		const inside = [...staticQuad.getBB(o.boundingBox())].filter(inner => o.zIndex < inner.zIndex && Entity.isRender(inner.boundingBox(), o.boundingBox()));
+		const inside = [...staticQuad.getBB(o.boundingBox())].filter(inner => o.zIndex < inner.zIndex);
 		const triangles = triangulate(o.points, triQuad, inside.map(inner => inner.points))
 		for (let i = 0; i < triangles.length; i++) {
 			let candidates: Set<tri> | null = null;

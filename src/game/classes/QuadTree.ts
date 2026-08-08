@@ -1,5 +1,6 @@
 import type { Vector2D } from "../types";
 import { vectorLerp } from "../utils";
+import { Entity } from "./Entity";
 
 const CAPACITY = 64;
 export class Quad<T extends { boundingBox: () => { v1: Vector2D, v2: Vector2D } }> {
@@ -88,7 +89,8 @@ export class Quad<T extends { boundingBox: () => { v1: Vector2D, v2: Vector2D } 
 		if (!this.overlaps(box)) return result;
 
 		for (const obj of this.entity)
-			result.add(obj);
+			if (Entity.isRender(obj.boundingBox(), box))
+				result.add(obj);
 
 		this.Iquad?.getBB(box, result);
 		this.IIquad?.getBB(box, result);

@@ -47,7 +47,6 @@ export class Light extends Entity {
 		staticQuad.getBB(box).forEach(o => {
 			if (o.zIndex < zIndex) return;
 			const obBox = o.boundingBox();
-			if (!Entity.isRender(obBox, box)) return;
 			const origin = { x: obBox.v1.x - loc.x + this.radius, y: obBox.v1.y - loc.y + this.radius };
 			const end = { x: obBox.v2.x - loc.x + this.radius, y: obBox.v2.y - loc.y + this.radius };
 			drawShadow(this.ctx, center, this.radius, o.localPoints(origin, end));
