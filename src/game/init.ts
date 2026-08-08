@@ -1,12 +1,11 @@
 import { Camera } from "./classes/camera";
-import { Entity } from "./classes/Entity";
 import { player } from "./classes/player";
 import { Quad } from "./classes/QuadTree";
 import { triangulate } from "./navigationMesh";
 import { drawRandomPolygon } from "./shape/draw";
 import { vectorLerp } from "./utils";
 import { hud, screenWorld, worldSize, info, browns, randomRange, camera, movables } from "./setup";
-import type { Polygon, Vector2D } from "./types";
+import type { Polygon } from "./types";
 import type { GameObject } from "./classes/GameObject";
 import type { tri } from "./classes/triangle";
 
@@ -19,7 +18,7 @@ const ctx = staticTexture.getContext("2d")!;
 const staticQuad = new Quad<GameObject>(worldSize, 20)
 const triQuad = new Quad<tri>(worldSize, 50)
 
-for (let i = 0; i < 400; i++) {
+for (let i = 0; i < 500; i++) {
 	const x = randomRange(worldSize.v1.x + 200, worldSize.v2.x - 200);
 	const y = randomRange(worldSize.v1.y + 200, worldSize.v2.y - 200);
 	const points = 3 + Math.floor(Math.random() * 14);

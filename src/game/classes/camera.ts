@@ -123,8 +123,8 @@ export class Camera extends Entity {
 		const height = v2.y - v1.y;
 		this.shanMogh.set(entity.id, [{ x: v1.x - 1, y: v1.y - 1 }, width + 2, height + 2, "rotation" in entity ? (entity.rotation as number) : 0]);
 		if ("rotation" in entity && entity.rotation !== 0 && typeof entity.rotation === "number") {
-		const cx = v1.x + width / 2;
-		const cy = v1.y + height / 2;
+			const cx = v1.x + width / 2;
+			const cy = v1.y + height / 2;
 			this.movementCtx.save();
 			this.movementCtx.translate(cx, cy);
 			this.movementCtx.rotate(entity.rotation);
