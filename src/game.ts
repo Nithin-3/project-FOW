@@ -131,15 +131,14 @@ function gameloop() {
 	}
 
 	if (acc >= 1000) {
-		const avg = frameCount;
-		frameCount = 0;
-		acc = 0;
 		hudCtx.clearRect(0, 0, width, height)
 		drawDebug(hudCtx, {
 			fps: Math.ceil(1000 / dt),
-			frameTime: `${dt} ms`,
-			frameGenerated: avg,
+			frameTime: `${(acc / frameCount).toFixed(3)} ms`,
+			frameGenerated: frameCount,
 		})
+		acc = 0;
+		frameCount = 0;
 	}
 
 	requestAnimationFrame(gameloop)
