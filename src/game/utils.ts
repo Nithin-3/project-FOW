@@ -33,6 +33,12 @@ export function normalizeVector(v: Vector2D): Vector2D {
 	return len > 0 ? { x: v.x / len, y: v.y / len } : { x: 0, y: 0 };
 }
 
+export function rotateVector(v: Vector2D, angle: number): Vector2D {
+	const c = Math.cos(angle);
+	const s = Math.sin(angle);
+	return { x: v.x * c - v.y * s, y: v.x * s + v.y * c };
+}
+
 export function vectorLerp(a: Vector2D, b: Vector2D, t: number): Vector2D {
 	return { x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t };
 }

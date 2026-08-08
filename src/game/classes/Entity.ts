@@ -1,5 +1,5 @@
 import { Uid } from "../uid";
-import type { Vector2D } from "../types";
+import type { Polygon, Vector2D } from "../types";
 
 export abstract class Entity {
 	readonly id: number;
@@ -19,5 +19,13 @@ export abstract class Entity {
 		if (a.v1.y < b.v1.y && a.v2.y < b.v1.y) return false;
 		if (a.v1.y > b.v2.y && a.v2.y > b.v2.y) return false;
 		return true;
+	}
+	static rotate(polygon: Polygon, Rad: number) {
+		const s = Math.sin(Rad);
+		const c = Math.cos(Rad);
+		return polygon.map(p => {
+			return { x: p.x * c - p.y * s, y: p.x * s + p.y * c }
+
+		})
 	}
 }

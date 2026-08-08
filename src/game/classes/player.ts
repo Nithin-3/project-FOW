@@ -16,10 +16,10 @@ export class player extends GameObject {
 		return this._loc;
 	}
 	public set loc(value: Vector2D) {
+		this._loc = value;
 		const keys = Object.keys(camera)
 		for (const c of keys)
 			camera[c].updateMovement(this)
-		this._loc = value;
 
 	}
 	private _rotation = 0;
@@ -27,10 +27,10 @@ export class player extends GameObject {
 		return this._rotation;
 	}
 	public set rotation(value) {
+		this._rotation = value;
 		const keys = Object.keys(camera)
 		for (const c of keys)
 			camera[c].updateMovement(this)
-		this._rotation = value;
 	}
 
 	shadow: Light;

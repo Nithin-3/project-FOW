@@ -1,7 +1,7 @@
 import { hud, hudCtx, screenWorld, screenWorldCtx, camera } from "./game/setup";
 import { edge, setCameraWidth, Player } from "./game/init";
 import type { Vector2D } from "./game/types";
-import { addVectors, multiplyVector, normalizeVector, subtractVectors, vectorLerp } from "./game/utils";
+import { addVectors, multiplyVector, normalizeVector, samePoint, subtractVectors, vectorLerp } from "./game/utils";
 
 
 let moveCam: Vector2D = { x: 0, y: 0 };
@@ -32,12 +32,20 @@ document.addEventListener("keyup", (event) => {
 });
 
 
+let walk: Vector2D[] = []
+
 hud.onclick = async (e) => {
 	const x = e.offsetX;
 	const y = e.offsetY;
 	const loc = camera.primary.screen2world({ x, y })
 	if (e.ctrlKey) {
-		const walk = await Player!.findPath(loc)
+		try {
+			walk = await Player!.findPath(loc)
+		} catch (e) {
+			console.log(e);
+
+		}
+		if (walk.length < 1) return;
 		screenWorldCtx.beginPath();
 		const a = camera.primary.world2screen(walk[0]);
 		screenWorldCtx.moveTo(a.x, a.y);
@@ -107,7 +115,16 @@ function gameloop() {
 		camera.primary.position = vectorLerp(camera.primary.position, addVectors(camera.primary.position, multiplyVector(moveCam, dt * 3)), 0.05);
 	}
 
-	if(camera.primary.stateChanged){
+	if (walk.length) {
+		const to = subtractVectors(walk[0], Player.loc);
+		if (samePoint(Player.loc, walk[0],5)) walk.shift();
+		else {
+			Player.rotation = Math.atan2(to.y, to.x) + Math.PI / 2;
+			Player.loc = addVectors(Player.loc, multiplyVector(normalizeVector(to), dt * 0.3));
+		}
+	}
+
+	if (camera.primary.stateChanged) {
 		camera.primary.render()
 		screenWorldCtx.clearRect(0, 0, width, height);
 		screenWorldCtx.drawImage(camera.primary.texture, 0, 0, width, height)
