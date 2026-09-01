@@ -1,7 +1,7 @@
 import { hud, hudCtx, screenWorld, screenWorldCtx, camera } from "./game/setup";
 import { edge, setCameraWidth, Player } from "./game/init";
 import type { Vector2D } from "./game/types";
-import { addVectors, multiplyVector, normalizeVector, samePoint, subtractVectors, vectorLerp } from "./game/utils";
+import { addVectors, multiplyVector, normalizeVector,  subtractVectors, vectorLerp } from "./game/utils";
 
 
 let moveCam: Vector2D = { x: 0, y: 0 };
@@ -116,12 +116,6 @@ function gameloop() {
 	}
 
 	if (walk.length) {
-		const to = subtractVectors(walk[0], Player.loc);
-		if (samePoint(Player.loc, walk[0],5)) walk.shift();
-		else {
-			Player.rotation = Math.atan2(to.y, to.x) + Math.PI / 2;
-			Player.loc = addVectors(Player.loc, multiplyVector(normalizeVector(to), dt * 0.3));
-		}
 	}
 
 	if (camera.primary.stateChanged) {

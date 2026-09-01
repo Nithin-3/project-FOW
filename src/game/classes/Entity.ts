@@ -28,4 +28,15 @@ export abstract class Entity {
 
 		})
 	}
+
+	static localPoints(points: Polygon, box: { v1: Vector2D, v2: Vector2D }, origin: Vector2D, end: Vector2D, Rad: number) {
+
+		const scaleX = (end.x - origin.x) / (box.v2.x - box.v1.x);
+		const scaleY = (end.y - origin.y) / (box.v2.y - box.v1.y);
+
+		return Entity.rotate(points.map(p => ({
+			x: origin.x + (p.x - box.v1.x) * scaleX,
+			y: origin.y + (p.y - box.v1.y) * scaleY,
+		})), Rad);
+	}
 }
