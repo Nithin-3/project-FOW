@@ -33,17 +33,13 @@ export function triangulate(outer: Polygon, door: Vector2D[] | undefined, triQua
 	for (const poly of merged)
 		freeSpace = pc.difference(freeSpace, [poly]);
 
-	const doorSet = new Set<string>();
-	if (door) for (let i = 0; i + 1 < door.length; i += 2)
-		doorSet.add(edgeId(door[i], door[i + 1]));
-
 	const seen = new Set<string>();
 	const edges: [Vector2D, Vector2D][] = [];
 	const addRing = (ring: Polygon) => {
 		for (let i = 0; i < ring.length; i++) {
 			const a = ring[i], b = ring[(i + 1) % ring.length];
 			const id = edgeId(a, b);
-			if (seen.has(id) || doorSet.has(id)) continue;
+			if (seen.has(id)) continue;
 			seen.add(id);
 			edges.push([a, b]);
 		}
@@ -67,7 +63,7 @@ export function triangulate(outer: Polygon, door: Vector2D[] | undefined, triQua
 		const convexes = convexPartition(contour, true);
 		for (const polygon of convexes) {
 			if (polygon.length < 3) continue;
-			const TRI = new tri(polygon, edges);
+			const TRI = new tri(polygon, edges, door);
 			buckets.forEach(t => TRI.insert(t));
 			buckets.add(TRI);
 			raw.push(TRI);

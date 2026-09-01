@@ -5,7 +5,7 @@ import { triangulate } from "./navigationMesh";
 import { drawRandomPolygon } from "./shape/draw";
 import { vectorLerp } from "./utils";
 import { hud, screenWorld, worldSize, info, browns, randomRange, camera, movables } from "./setup";
-import type { Polygon } from "./types";
+import type { Polygon, Vector2D } from "./types";
 import type { GameObject } from "./classes/GameObject";
 import type { tri } from "./classes/triangle";
 
@@ -29,7 +29,8 @@ for (let i = 0; i < 500; i++) {
 
 const staticObj = [...staticQuad.getAll()].sort((a, b) => a.zIndex - b.zIndex);
 const worldRect: Polygon = [worldSize.v1, { x: worldSize.v1.x, y: worldSize.v2.y }, worldSize.v2, { x: worldSize.v2.x, y: worldSize.v1.y },];
-triangulate(worldRect, undefined, triQuad, staticObj.map(o => o.points));
+const allDoors: Vector2D[] = staticObj.flatMap(o => o.door ?? []);
+triangulate(worldRect, allDoors, triQuad, staticObj.map(o => o.points));
 
 function loadImage(src: string): Promise<HTMLImageElement> {
 	return new Promise((resolve, reject) => {
@@ -66,7 +67,7 @@ for (const o of staticObj) {
 		}
 		const dupDoor = [...o.door]
 		const inside = [...staticQuad.getBB(o.boundingBox())].filter(inner => o.zIndex < inner.zIndex);
-		const triangles = triangulate(o.points, o.door, triQuad, inside.map(inner => inner.points))
+		const triangles = triangulate(o.points, allDoors, triQuad, inside.map(inner => inner.points))
 		for (let i = 0; i < triangles.length; i++) {
 			let candidates: Set<tri> | null = null;
 			for (let d = dupDoor.length - 2; d >= 0; d -= 2) {
@@ -104,7 +105,7 @@ movables.push(Player)
 
 
 
-ctx.lineWidth = 1;
+ctx.lineWidth = 2;
 ctx.strokeStyle = "cyan";
 for (const poly of triQuad.getAll()) {
 	for (const edge of poly.collitionEdge) {
