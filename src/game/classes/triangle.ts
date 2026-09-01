@@ -29,7 +29,7 @@ export class tri extends Entity {
 	EDGE_B: [Vector2D, Vector2D] | null = null;
 	timeStamp_B: number = 0;
 
-	constructor(vertices: Vector2D[], collitionBoundry: [Vector2D, Vector2D][], door: Vector2D[] = []) {
+	constructor(vertices: Vector2D[], collitionBoundry: [Vector2D, Vector2D][]) {
 		super()
 		this.vertex = vertices;
 		let cx = 0, cy = 0;
@@ -47,11 +47,6 @@ export class tri extends Entity {
 		const nv = this.vertex.length;
 		for (let k = 0; k < collitionBoundry.length; k += 1) {
 			const [b1, b2] = collitionBoundry[k];
-			let isDoor = false;
-			for (let d = 0; d + 1 < door.length; d += 2) {
-				if (this.sameEdge(b1, b2, door[d], door[d + 1], 1e-6)) { isDoor = true; break; }
-			}
-			if (isDoor) continue;
 			for (let i = 0; i < nv; i += 1) {
 				const a1 = this.vertex[i];
 				const a2 = this.vertex[(i + 1) % nv];
