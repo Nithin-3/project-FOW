@@ -10,6 +10,7 @@ type Neighbor = {
 
 export class tri extends Entity {
 	readonly vertex: Vector2D[];
+	readonly collitionEdge: [Vector2D, Vector2D][];
 	readonly center: Vector2D;
 	neighbors: Neighbor[] = [];
 
@@ -28,7 +29,7 @@ export class tri extends Entity {
 	EDGE_B: [Vector2D, Vector2D] | null = null;
 	timeStamp_B: number = 0;
 
-	constructor(...vertices: Vector2D[]) {
+	constructor(vertices: Vector2D[], collitionBoundry: [Vector2D, Vector2D][]) {
 		super()
 		this.vertex = vertices;
 		let cx = 0, cy = 0;
@@ -41,6 +42,22 @@ export class tri extends Entity {
 			if (p.y > this._boundingBox.v2.y) this._boundingBox.v2.y = p.y;
 		}
 		this.center = { x: cx / vertices.length, y: cy / vertices.length };
+
+		const filtered: [Vector2D, Vector2D][] = [];
+		const nv = this.vertex.length;
+		for (let k = 0; k < collitionBoundry.length; k += 1) {
+			const [b1, b2] = collitionBoundry[k];
+			for (let i = 0; i < nv; i += 1) {
+				const a1 = this.vertex[i];
+				const a2 = this.vertex[(i + 1) % nv];
+				const edge = this.sameEdge(a1, a2, b1, b2, 1e-6);
+				if (edge) {
+					filtered.push(edge)
+					break
+				}
+			}
+		}
+		this.collitionEdge = filtered
 	}
 
 	private sameEdge(a1: Vector2D, a2: Vector2D, b1: Vector2D, b2: Vector2D, eps: number): [Vector2D, Vector2D] | null {

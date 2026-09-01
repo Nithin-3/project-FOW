@@ -1,4 +1,4 @@
-import type { Polygon } from "./types";
+import type { Polygon, Vector2D } from "./types";
 import * as pc from "polygon-clipping";
 import { removeHoles, convexPartition } from "poly-partition";
 import { tri } from "./classes/triangle";
@@ -22,11 +22,35 @@ function unionHoles(holes: Polygon[]): pc.Polygon[] {
 	return merged;
 }
 
-export function triangulate(outer: Polygon, triQuad: Quad<tri>, holes: Polygon[] = []): tri[] {
+function edgeId(a: Vector2D, b: Vector2D): string {
+	const [p, q] = (a.x < b.x || (a.x === b.x && a.y <= b.y)) ? [a, b] : [b, a];
+	return `${p.x},${p.y}|${q.x},${q.y}`;
+}
+
+export function triangulate(outer: Polygon, door: Vector2D[] | undefined, triQuad: Quad<tri>, holes: Polygon[] = []): tri[] {
 	let freeSpace: pc.MultiPolygon = [[toRing(outer)]];
 	const merged = unionHoles(holes);
 	for (const poly of merged)
 		freeSpace = pc.difference(freeSpace, [poly]);
+
+	const doorSet = new Set<string>();
+	if (door) for (let i = 0; i + 1 < door.length; i += 2)
+		doorSet.add(edgeId(door[i], door[i + 1]));
+
+	const seen = new Set<string>();
+	const edges: [Vector2D, Vector2D][] = [];
+	const addRing = (ring: Polygon) => {
+		for (let i = 0; i < ring.length; i++) {
+			const a = ring[i], b = ring[(i + 1) % ring.length];
+			const id = edgeId(a, b);
+			if (seen.has(id) || doorSet.has(id)) continue;
+			seen.add(id);
+			edges.push([a, b]);
+		}
+	};
+
+	addRing(outer);
+	for (const hole of holes) addRing(hole);
 
 	const raw: tri[] = [];
 	const buckets = new Set<tri>();
@@ -43,7 +67,7 @@ export function triangulate(outer: Polygon, triQuad: Quad<tri>, holes: Polygon[]
 		const convexes = convexPartition(contour, true);
 		for (const polygon of convexes) {
 			if (polygon.length < 3) continue;
-			const TRI = new tri(...polygon);
+			const TRI = new tri(polygon, edges);
 			buckets.forEach(t => TRI.insert(t));
 			buckets.add(TRI);
 			raw.push(TRI);

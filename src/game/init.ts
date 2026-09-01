@@ -29,8 +29,7 @@ for (let i = 0; i < 500; i++) {
 
 const staticObj = [...staticQuad.getAll()].sort((a, b) => a.zIndex - b.zIndex);
 const worldRect: Polygon = [worldSize.v1, { x: worldSize.v1.x, y: worldSize.v2.y }, worldSize.v2, { x: worldSize.v2.x, y: worldSize.v1.y },];
-
-triangulate(worldRect, triQuad, staticObj.map(o => o.points));
+triangulate(worldRect, undefined, triQuad, staticObj.map(o => o.points));
 
 function loadImage(src: string): Promise<HTMLImageElement> {
 	return new Promise((resolve, reject) => {
@@ -67,7 +66,7 @@ for (const o of staticObj) {
 		}
 		const dupDoor = [...o.door]
 		const inside = [...staticQuad.getBB(o.boundingBox())].filter(inner => o.zIndex < inner.zIndex);
-		const triangles = triangulate(o.points, triQuad, inside.map(inner => inner.points))
+		const triangles = triangulate(o.points, o.door, triQuad, inside.map(inner => inner.points))
 		for (let i = 0; i < triangles.length; i++) {
 			let candidates: Set<tri> | null = null;
 			for (let d = dupDoor.length - 2; d >= 0; d -= 2) {
@@ -100,8 +99,24 @@ camera['primary'] = new Camera({ x: -2000, y: -2000 }, cameraWidth, getHeight(ca
 
 const x = randomRange(worldSize.v1.x + 1000, worldSize.v2.x - 1000);
 const y = randomRange(worldSize.v1.y + 1000, worldSize.v2.y - 1000);
-const Player = new player({x,y} )
+const Player = new player({ x, y })
 movables.push(Player)
+
+
+
+ctx.lineWidth = 1;
+ctx.strokeStyle = "cyan";
+for (const poly of triQuad.getAll()) {
+	for (const edge of poly.collitionEdge) {
+		ctx.beginPath();
+		ctx.moveTo(edge[0].x, edge[0].y);
+		ctx.lineTo(edge[1].x, edge[1].y);
+		ctx.stroke();
+
+	}
+
+}
+
 
 
 // const drawArrow = (ctx: OffscreenCanvasRenderingContext2D, from: Vector2D, to: Vector2D, size = 5) => {
