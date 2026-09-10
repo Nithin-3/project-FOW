@@ -10,6 +10,9 @@ export class PhysicsBody extends GameObject {
 	private inertia: number;
 
 
+	public get com():Vector2D{
+		return this.COM;
+	}
 
 
 	private _pos: Vector2D;
@@ -51,7 +54,7 @@ export class PhysicsBody extends GameObject {
 	}
 
 
-	centroid() {
+	private centroid() {
 		let cx = 0;
 		let cy = 0;
 
@@ -67,7 +70,7 @@ export class PhysicsBody extends GameObject {
 		return { x: cx / (6 * this.area), y: cy / (6 * this.area) };
 	}
 
-	inertia_() {
+	private inertia_() {
 		let I = 0;
 		const massPerVertex = this.mass / this.points.length;
 		for (const p of this.points) {
@@ -92,6 +95,13 @@ export class PhysicsBody extends GameObject {
 		this._rot = rotation;
 	}
 
+
+	public rotateToward(target: number, speed: number, delta: number) {
+		let diff = target - this._rot;
+		while (diff > Math.PI) diff -= 2 * Math.PI;
+		while (diff < -Math.PI) diff += 2 * Math.PI;
+		this.rotation = this._rot + diff * (1 - Math.exp(-speed * delta / 300));
+	}
 
 	applyForce(force: Vector2D, intractPoint: Vector2D,delta:number) {
 		const a = { x: force.x / this.mass, y: force.y / this.mass }
