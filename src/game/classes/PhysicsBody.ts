@@ -1,6 +1,9 @@
+import { triQuad } from "../init";
 import { camera } from "../setup";
+import { segmentIntersectPolygon } from "../tools";
 import type { Color, Polygon, Vector2D } from "../types";
 import { addVectors, multiplyVector, subtractVectors } from "../utils";
+import { Entity } from "./Entity";
 import { GameObject } from "./GameObject";
 
 export class PhysicsBody extends GameObject {
@@ -8,9 +11,10 @@ export class PhysicsBody extends GameObject {
 	private mass: number;
 	private COM: { x: number; y: number; };
 	private inertia: number;
+	private hull: Polygon;
 
 
-	public get com():Vector2D{
+	public get com(): Vector2D {
 		return this.COM;
 	}
 
@@ -20,6 +24,11 @@ export class PhysicsBody extends GameObject {
 		return this._pos;
 	}
 	private set position(value: Vector2D) {
+		triQuad.getLeafQuad(value).forEach(convex => {
+			for (const edge of convex.collitionEdge) 
+				if (segmentIntersectPolygon(edge[0], edge[1], Entity.localPoints(this.hull, this._boundingBox, this._pos, { x: this._pos.x + (this._boundingBox.v2.x - this._boundingBox.v1.x), y: this._pos.y + (this._boundingBox.v2.y - this._boundingBox.v1.y) }, this._rot)).length)
+			console.log("collition")
+		})
 		this._pos = value;
 		const keys = Object.keys(camera)
 		for (const c of keys)
@@ -93,6 +102,8 @@ export class PhysicsBody extends GameObject {
 
 		this._pos = position;
 		this._rot = rotation;
+
+		this.hull = this.convexHull()
 	}
 
 
@@ -103,10 +114,10 @@ export class PhysicsBody extends GameObject {
 		this.rotation = this._rot + diff * (1 - Math.exp(-speed * delta / 300));
 	}
 
-	applyForce(force: Vector2D, intractPoint: Vector2D,delta:number) {
+	applyForce(force: Vector2D, intractPoint: Vector2D, delta: number) {
 		const a = { x: force.x / this.mass, y: force.y / this.mass }
 		this.linearVelocity = addVectors(this.linearVelocity, multiplyVector(a, delta));
-		const dist = subtractVectors(intractPoint,this.COM);
+		const dist = subtractVectors(intractPoint, this.COM);
 		const t = dist.x * force.y - dist.y * force.x;
 		this.angularVelocity += (t / this.inertia) * delta;
 

@@ -134,7 +134,6 @@ function gameloop() {
 	if (acc >= 1000) {
 		hudCtx.clearRect(0, 0, width, height)
 		drawDebug(hudCtx, {
-			fps: Math.ceil(1000 / dt),
 			frameTime: `${(acc / frameCount).toFixed(3)} ms`,
 			frameGenerated: frameCount,
 		})
