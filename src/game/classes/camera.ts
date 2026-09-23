@@ -22,6 +22,9 @@ export class Camera extends Entity {
 	private movementLayer: OffscreenCanvas;
 	private movementCtx: OffscreenCanvasRenderingContext2D;
 
+	private debugLayer?: OffscreenCanvas;
+	debugCtx?: OffscreenCanvasRenderingContext2D;
+
 	private fogLayer: OffscreenCanvas;
 	private fogCtx: OffscreenCanvasRenderingContext2D;
 	private fogMask: OffscreenCanvas;
@@ -62,6 +65,11 @@ export class Camera extends Entity {
 		this._updateBounds();
 		this._ensureScale(window.innerWidth, window.innerHeight);
 		window.addEventListener("resize", () => this._ensureScale(window.innerWidth, window.innerHeight))
+
+		if (import.meta.env.DEV) {
+			this.debugLayer = new OffscreenCanvas(this.cam.width, this.cam.height);
+			this.debugCtx = this.debugLayer.getContext('2d')!;
+		}
 	}
 
 	private _updateBounds() {
@@ -93,6 +101,10 @@ export class Camera extends Entity {
 		this.movementLayer.height = height;
 		this._texture.width = width;
 		this._texture.height = height;
+		if (this.debugLayer) {
+			this.debugLayer.height = height;
+			this.debugLayer.width = width;
+		}
 		for (const m of movables)
 			this.updateMovement(m)
 		this.draw = true
@@ -209,6 +221,10 @@ export class Camera extends Entity {
 		this.fogCtx.drawImage(this.fogMask, 0, 0)
 
 		this.ctx.drawImage(this.fogLayer, 0, 0, this.cam.width, this.cam.height, 0, 0, this.cam.width, this.cam.height);
+
+		if (this.debugLayer) {
+			this.ctx.drawImage(this.debugLayer, 0, 0, this.cam.width, this.cam.height, 0, 0, this.cam.width, this.cam.height);
+		}
 	}
 
 }
