@@ -1,9 +1,8 @@
 import { triQuad } from "../init";
 import { camera } from "../setup";
-import { segmentIntersectPolygon } from "../tools";
+import { segmentHitsConvexHull, segmentOverlapsBox } from "../tools";
 import type { Color, Polygon, Vector2D } from "../types";
 import { addVectors, multiplyVector, subtractVectors } from "../utils";
-import { Entity } from "./Entity";
 import { GameObject } from "./GameObject";
 
 export class PhysicsBody extends GameObject {
@@ -24,11 +23,33 @@ export class PhysicsBody extends GameObject {
 		return this._pos;
 	}
 	private set position(value: Vector2D) {
-		triQuad.getLeafQuad(value).forEach(convex => {
-			for (const edge of convex.collitionEdge) 
-				if (segmentIntersectPolygon(edge[0], edge[1], Entity.localPoints(this.hull, this._boundingBox, this._pos, { x: this._pos.x + (this._boundingBox.v2.x - this._boundingBox.v1.x), y: this._pos.y + (this._boundingBox.v2.y - this._boundingBox.v1.y) }, this._rot)).length)
-			console.log("collition")
-		})
+		const bw = this._boundingBox.v2.x - this._boundingBox.v1.x;
+		const bh = this._boundingBox.v2.y - this._boundingBox.v1.y;
+		const s = Math.sin(this._rot), c = Math.cos(this._rot);
+		const cx = this._boundingBox.v1.x + bw / 2;
+		const cy = this._boundingBox.v1.y + bh / 2;
+		const hull = this.hull.map(p => {
+			const dx = p.x - cx, dy = p.y - cy;
+			return { x: value.x + dx * c - dy * s, y: value.y + dx * s + dy * c };
+		});
+
+		let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+		for (const p of hull) {
+			if (p.x < minX) minX = p.x;
+			if (p.y < minY) minY = p.y;
+			if (p.x > maxX) maxX = p.x;
+			if (p.y > maxY) maxY = p.y;
+		}
+		const hullBox = { v1: { x: minX, y: minY }, v2: { x: maxX, y: maxY } };
+
+		for (const convex of triQuad.getBB(hullBox)) {
+			for (const edge of convex.collitionEdge) {
+				if (!segmentOverlapsBox(edge[0], edge[1], hullBox)) continue;
+				if (!segmentHitsConvexHull(edge[0], edge[1], hull)) continue;
+
+				camera.primary.debugCollisions.push({ a: edge[0], b: edge[1], t: performance.now() });
+			}
+		}
 		this._pos = value;
 		const keys = Object.keys(camera)
 		for (const c of keys)

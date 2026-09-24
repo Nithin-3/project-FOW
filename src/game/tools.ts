@@ -23,6 +23,42 @@ export function segmentIntersect(a: Vector2D, b: Vector2D, c: Vector2D, d: Vecto
 	return addVectors(a, multiplyVector(r, t));
 }
 
+// Does segment AB overlap an axis-aligned box? (allocation-free Liang–Barsky clip)
+export function segmentOverlapsBox(a: Vector2D, b: Vector2D, box: { v1: Vector2D; v2: Vector2D }): boolean {
+	if ((a.x < box.v1.x && b.x < box.v1.x) || (a.x > box.v2.x && b.x > box.v2.x)) return false;
+	if ((a.y < box.v1.y && b.y < box.v1.y) || (a.y > box.v2.y && b.y > box.v2.y)) return false;
+
+	const dx = b.x - a.x, dy = b.y - a.y;
+	const p = [-dx, dx, -dy, dy];
+	const q = [a.x - box.v1.x, box.v2.x - a.x, a.y - box.v1.y, box.v2.y - a.y];
+
+	let tmin = 0, tmax = 1;
+	for (let i = 0; i < 4; i++) {
+		if (p[i] === 0) {
+			if (q[i] < 0) return false;
+		} else {
+			const t = q[i] / p[i];
+			if (p[i] < 0) {
+				if (t > tmax) return false;
+				if (t > tmin) tmin = t;
+			} else {
+				if (t < tmin) return false;
+				if (t < tmax) tmax = t;
+			}
+		}
+	}
+	return tmin <= tmax;
+}
+
+// Boolean collision: does segment AB touch convex polygon (early-exit, no allocation)?
+export function segmentHitsConvexHull(a: Vector2D, b: Vector2D, polygon: Polygon): boolean {
+	if (pointInPolygon(a, polygon) || pointInPolygon(b, polygon)) return true;
+	for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+		if (segmentIntersect(a, b, polygon[j], polygon[i])) return true;
+	}
+	return false;
+}
+
 // Intersection of two infinite lines (a-b and c-d), or null
 // formula: a + t*(b-a) where t = ((c-a) × s) / (r × s)
 export function lineIntersec(a: Vector2D, b: Vector2D, c: Vector2D, d: Vector2D): Vector2D | null {
