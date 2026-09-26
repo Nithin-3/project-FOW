@@ -24,7 +24,7 @@ export class Camera extends Entity {
 
 	private debugLayer?: OffscreenCanvas;
 	debugCtx?: OffscreenCanvasRenderingContext2D;
-	debugCollisions: { a: Vector2D; b: Vector2D; t: number }[] = [];
+	debugCollisions: { a: Vector2D; b: Vector2D; n?: Vector2D; t: number }[] = [];
 
 	private fogLayer: OffscreenCanvas;
 	private fogCtx: OffscreenCanvasRenderingContext2D;
@@ -235,6 +235,19 @@ export class Camera extends Entity {
 				this.debugCtx.lineTo(c.b.x - this.loc.x, c.b.y - this.loc.y);
 			}
 			this.debugCtx.stroke();
+
+			this.debugCtx.lineWidth = 2;
+			this.debugCtx.strokeStyle = "#00ff88";
+			this.debugCtx.beginPath();
+			for (const c of this.debugCollisions) {
+				if (!c.n) continue;
+				const mx = (c.a.x + c.b.x) / 2 - this.loc.x;
+				const my = (c.a.y + c.b.y) / 2 - this.loc.y;
+				this.debugCtx.moveTo(mx, my);
+				this.debugCtx.lineTo(mx + c.n.x * 30, my + c.n.y * 30);
+			}
+			this.debugCtx.stroke();
+
 			this.ctx.drawImage(this.debugLayer, 0, 0, this.cam.width, this.cam.height);
 		}
 	}

@@ -100,6 +100,22 @@ export class Quad<T extends { boundingBox: () => { v1: Vector2D, v2: Vector2D } 
 		return result;
 	}
 
+	// Visit every entity whose bounding box overlaps `box`, without building a
+	// result Set. Return true (and stop) as soon as `fn` returns false.
+	forEachBB(box: { v1: Vector2D, v2: Vector2D }, fn: (obj: T) => boolean | void): boolean {
+		if (!this.overlaps(box)) return false;
+
+		for (const obj of this.entity)
+			if (Entity.isRender(obj.boundingBox(), box) && fn(obj) === false) return true;
+
+		if (this.Iquad?.forEachBB(box, fn)) return true;
+		if (this.IIquad?.forEachBB(box, fn)) return true;
+		if (this.IIIquad?.forEachBB(box, fn)) return true;
+		if (this.IVquad?.forEachBB(box, fn)) return true;
+
+		return false;
+	}
+
 	getAll(result = new Set<T>()) {
 		for (const obj of this.entity)
 			result.add(obj);

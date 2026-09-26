@@ -23,30 +23,60 @@ export function segmentIntersect(a: Vector2D, b: Vector2D, c: Vector2D, d: Vecto
 	return addVectors(a, multiplyVector(r, t));
 }
 
+// Boolean segment intersection, allocation-free (no intermediate vectors)
+export function segmentsIntersect(a: Vector2D, b: Vector2D, c: Vector2D, d: Vector2D): boolean {
+	const rx = b.x - a.x, ry = b.y - a.y;
+	const sx = d.x - c.x, sy = d.y - c.y;
+	const denom = rx * sy - ry * sx;
+	if (denom === 0) return false;
+	const cax = c.x - a.x, cay = c.y - a.y;
+	const t = (cax * sy - cay * sx) / denom;
+	if (t < 0 || t > 1) return false;
+	const u = (cax * ry - cay * rx) / denom;
+	return u >= 0 && u <= 1;
+}
+
 // Does segment AB overlap an axis-aligned box? (allocation-free Liang–Barsky clip)
 export function segmentOverlapsBox(a: Vector2D, b: Vector2D, box: { v1: Vector2D; v2: Vector2D }): boolean {
 	if ((a.x < box.v1.x && b.x < box.v1.x) || (a.x > box.v2.x && b.x > box.v2.x)) return false;
 	if ((a.y < box.v1.y && b.y < box.v1.y) || (a.y > box.v2.y && b.y > box.v2.y)) return false;
 
 	const dx = b.x - a.x, dy = b.y - a.y;
-	const p = [-dx, dx, -dy, dy];
-	const q = [a.x - box.v1.x, box.v2.x - a.x, a.y - box.v1.y, box.v2.y - a.y];
-
 	let tmin = 0, tmax = 1;
-	for (let i = 0; i < 4; i++) {
-		if (p[i] === 0) {
-			if (q[i] < 0) return false;
-		} else {
-			const t = q[i] / p[i];
-			if (p[i] < 0) {
-				if (t > tmax) return false;
-				if (t > tmin) tmin = t;
-			} else {
-				if (t < tmin) return false;
-				if (t < tmax) tmax = t;
-			}
-		}
+
+	// clip against -x
+	let p = -dx, q = a.x - box.v1.x;
+	if (p === 0) { if (q < 0) return false; }
+	else {
+		const t = q / p;
+		if (p < 0) { if (t > tmax) return false; if (t > tmin) tmin = t; }
+		else { if (t < tmin) return false; if (t < tmax) tmax = t; }
 	}
+	// clip against +x
+	p = dx; q = box.v2.x - a.x;
+	if (p === 0) { if (q < 0) return false; }
+	else {
+		const t = q / p;
+		if (p < 0) { if (t > tmax) return false; if (t > tmin) tmin = t; }
+		else { if (t < tmin) return false; if (t < tmax) tmax = t; }
+	}
+	// clip against -y
+	p = -dy; q = a.y - box.v1.y;
+	if (p === 0) { if (q < 0) return false; }
+	else {
+		const t = q / p;
+		if (p < 0) { if (t > tmax) return false; if (t > tmin) tmin = t; }
+		else { if (t < tmin) return false; if (t < tmax) tmax = t; }
+	}
+	// clip against +y
+	p = dy; q = box.v2.y - a.y;
+	if (p === 0) { if (q < 0) return false; }
+	else {
+		const t = q / p;
+		if (p < 0) { if (t > tmax) return false; if (t > tmin) tmin = t; }
+		else { if (t < tmin) return false; if (t < tmax) tmax = t; }
+	}
+
 	return tmin <= tmax;
 }
 
@@ -54,9 +84,26 @@ export function segmentOverlapsBox(a: Vector2D, b: Vector2D, box: { v1: Vector2D
 export function segmentHitsConvexHull(a: Vector2D, b: Vector2D, polygon: Polygon): boolean {
 	if (pointInPolygon(a, polygon) || pointInPolygon(b, polygon)) return true;
 	for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
-		if (segmentIntersect(a, b, polygon[j], polygon[i])) return true;
+		if (segmentsIntersect(a, b, polygon[j], polygon[i])) return true;
 	}
 	return false;
+}
+
+// Unit normal of segment a->b, oriented to point toward `center`.
+// `center` must be a point known to sit in free space (e.g. the walkable
+// triangle's centre), which makes the result independent of edge winding.
+export function edgeNormal(a: Vector2D, b: Vector2D, center: Vector2D): Vector2D {
+	const dx = b.x - a.x;
+	const dy = b.y - a.y;
+	const len = Math.sqrt(dx * dx + dy * dy);
+	if (len === 0) return { x: 0, y: 0 };
+	let nx = -dy / len;
+	let ny = dx / len;
+	if (nx * (center.x - a.x) + ny * (center.y - a.y) < 0) {
+		nx = -nx;
+		ny = -ny;
+	}
+	return { x: nx, y: ny };
 }
 
 // Intersection of two infinite lines (a-b and c-d), or null

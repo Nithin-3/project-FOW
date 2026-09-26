@@ -1,9 +1,11 @@
 import { triQuad } from "../init";
 import { camera } from "../setup";
-import { segmentHitsConvexHull, segmentOverlapsBox } from "../tools";
+import { edgeNormal, segmentHitsConvexHull, segmentOverlapsBox } from "../tools";
 import type { Color, Polygon, Vector2D } from "../types";
-import { addVectors, multiplyVector, subtractVectors } from "../utils";
+import { addVectors, cancelForceAlongDirection, dot, multiplyVector, subtractVectors } from "../utils";
 import { GameObject } from "./GameObject";
+
+const DEBUG_COLLISION_CAP = 500;
 
 export class PhysicsBody extends GameObject {
 	private area: number;
@@ -11,6 +13,14 @@ export class PhysicsBody extends GameObject {
 	private COM: { x: number; y: number; };
 	private inertia: number;
 	private hull: Polygon;
+
+	// Hull points re-centred on the body's local bounding box centre and
+	// rotated by the current rotation, filled in world space by buildWorldHull.
+	private localHull: Polygon;
+	private worldHull: Polygon;
+	private hullBox: { v1: Vector2D; v2: Vector2D };
+	private candidate: Vector2D;
+	private normals: Vector2D[] = [];
 
 
 	public get com(): Vector2D {
@@ -22,49 +32,10 @@ export class PhysicsBody extends GameObject {
 	public get position(): Vector2D {
 		return this._pos;
 	}
-	private set position(value: Vector2D) {
-		const bw = this._boundingBox.v2.x - this._boundingBox.v1.x;
-		const bh = this._boundingBox.v2.y - this._boundingBox.v1.y;
-		const s = Math.sin(this._rot), c = Math.cos(this._rot);
-		const cx = this._boundingBox.v1.x + bw / 2;
-		const cy = this._boundingBox.v1.y + bh / 2;
-		const hull = this.hull.map(p => {
-			const dx = p.x - cx, dy = p.y - cy;
-			return { x: value.x + dx * c - dy * s, y: value.y + dx * s + dy * c };
-		});
-
-		let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-		for (const p of hull) {
-			if (p.x < minX) minX = p.x;
-			if (p.y < minY) minY = p.y;
-			if (p.x > maxX) maxX = p.x;
-			if (p.y > maxY) maxY = p.y;
-		}
-		const hullBox = { v1: { x: minX, y: minY }, v2: { x: maxX, y: maxY } };
-
-		for (const convex of triQuad.getBB(hullBox)) {
-			for (const edge of convex.collitionEdge) {
-				if (!segmentOverlapsBox(edge[0], edge[1], hullBox)) continue;
-				if (!segmentHitsConvexHull(edge[0], edge[1], hull)) continue;
-
-				camera.primary.debugCollisions.push({ a: edge[0], b: edge[1], t: performance.now() });
-			}
-		}
-		this._pos = value;
-		const keys = Object.keys(camera)
-		for (const c of keys)
-			camera[c].updateMovement(this)
-	}
 
 	private _rot: number;
 	public get rotation(): number {
 		return this._rot;
-	}
-	private set rotation(value: number) {
-		this._rot = value;
-		const keys = Object.keys(camera)
-		for (const c of keys)
-			camera[c].updateMovement(this)
 	}
 
 
@@ -125,6 +96,102 @@ export class PhysicsBody extends GameObject {
 		this._rot = rotation;
 
 		this.hull = this.convexHull()
+
+		const box = this._boundingBox;
+		const cx = (box.v1.x + box.v2.x) / 2;
+		const cy = (box.v1.y + box.v2.y) / 2;
+		this.localHull = this.hull.map(p => ({ x: p.x - cx, y: p.y - cy }));
+		this.worldHull = this.localHull.map(() => ({ x: 0, y: 0 }));
+		this.hullBox = { v1: { x: 0, y: 0 }, v2: { x: 0, y: 0 } };
+		this.candidate = { x: 0, y: 0 };
+	}
+
+
+	// Transform the hull to `pos` using the current rotation and refresh hullBox.
+	// Reuses the worldHull points and the hullBox object, so no allocation here.
+	private buildWorldHull(pos: Vector2D) {
+		const s = Math.sin(this._rot), c = Math.cos(this._rot);
+		const hull = this.worldHull;
+		const local = this.localHull;
+		const n = local.length;
+
+		let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+		for (let i = 0; i < n; i++) {
+			const p = local[i];
+			const x = pos.x + p.x * c - p.y * s;
+			const y = pos.y + p.x * s + p.y * c;
+			hull[i].x = x;
+			hull[i].y = y;
+			if (x < minX) minX = x;
+			if (y < minY) minY = y;
+			if (x > maxX) maxX = x;
+			if (y > maxY) maxY = y;
+		}
+
+		this.hullBox.v1.x = minX;
+		this.hullBox.v1.y = minY;
+		this.hullBox.v2.x = maxX;
+		this.hullBox.v2.y = maxY;
+	}
+
+	// Fill this.normals with the outward normal of every static edge the
+	// current world hull overlaps. Must be preceded by buildWorldHull.
+	private collectNormals() {
+		this.normals.length = 0;
+		const hullBox = this.hullBox;
+		const hull = this.worldHull;
+		const debugCollisions = import.meta.env.DEV ? camera.primary.debugCollisions : null;
+
+		triQuad.forEachBB(hullBox, (convex) => {
+			for (const edge of convex.collitionEdge) {
+				if (!segmentOverlapsBox(edge[0], edge[1], hullBox)) continue;
+				if (!segmentHitsConvexHull(edge[0], edge[1], hull)) continue;
+
+				// convex.center sits in the walkable triangle, so the normal
+				// oriented toward it always points out of the obstacle.
+				this.normals.push(edgeNormal(edge[0], edge[1], convex.center));
+
+				if (debugCollisions && debugCollisions.length < DEBUG_COLLISION_CAP)
+					debugCollisions.push({ a: edge[0], b: edge[1], n: this.normals[this.normals.length - 1], t: performance.now() });
+			}
+		});
+	}
+
+	// Cancel the part of the body's motion that pushes into `normal` while
+	// keeping the sliding part: this is the equal-and-opposite reaction force.
+	private applyNormalForce(normal: Vector2D) {
+		if (dot(this.linearVelocity, normal) >= 0) return; // already moving away
+		this.linearVelocity = cancelForceAlongDirection(this.linearVelocity, normal).remaining;
+	}
+
+	// Move by the current velocity, sliding along anything it runs into.
+	private move(delta: number) {
+		let dx = this.linearVelocity.x * delta;
+		let dy = this.linearVelocity.y * delta;
+		if (dx === 0 && dy === 0) return;
+
+		this.candidate.x = this._pos.x + dx;
+		this.candidate.y = this._pos.y + dy;
+		this.buildWorldHull(this.candidate);
+		this.collectNormals();
+
+		for (const n of this.normals) {
+			const mag = dx * n.x + dy * n.y;
+			if (mag < 0) {
+				dx -= n.x * mag;
+				dy -= n.y * mag;
+			}
+			this.applyNormalForce(n);
+		}
+
+		this._pos = { x: this._pos.x + dx, y: this._pos.y + dy };
+	}
+
+	// Push the current state to the cameras. Called once per physics step
+	// rather than once per mutated property.
+	private commit() {
+		for (const c in camera)
+			camera[c].updateMovement(this)
 	}
 
 
@@ -132,7 +199,8 @@ export class PhysicsBody extends GameObject {
 		let diff = target - this._rot;
 		while (diff > Math.PI) diff -= 2 * Math.PI;
 		while (diff < -Math.PI) diff += 2 * Math.PI;
-		this.rotation = this._rot + diff * (1 - Math.exp(-speed * delta / 300));
+		this._rot = this._rot + diff * (1 - Math.exp(-speed * delta / 300));
+		this.commit();
 	}
 
 	applyForce(force: Vector2D, intractPoint: Vector2D, delta: number) {
@@ -147,9 +215,12 @@ export class PhysicsBody extends GameObject {
 
 
 	private apply(delta: number) {
-		this.position = addVectors(this._pos, multiplyVector(this.linearVelocity, delta));
-		this.linearVelocity = multiplyVector(this.linearVelocity, this.lossOverT);
-		this.rotation += this.angularVelocity * delta;
+		this._rot += this.angularVelocity * delta;
 		this.angularVelocity *= this.lossOverT;
+
+		this.move(delta);
+		this.linearVelocity = multiplyVector(this.linearVelocity, this.lossOverT);
+
+		this.commit();
 	}
 }

@@ -47,6 +47,23 @@ export function crossProduct(a: Vector2D, b: Vector2D): number {
 	return a.x * b.y - a.y * b.x;
 }
 
+export function dot(a: Vector2D, b: Vector2D): number {
+	return a.x * b.x + a.y * b.y;
+}
+
+// Split `force` into the part along `dir` and the part perpendicular to it.
+// `remaining` keeps only the perpendicular (sliding) part, `counter` is the
+// equal-and-opposite of the component along `dir`.
+export function cancelForceAlongDirection(force: Vector2D, dir: Vector2D): { remaining: Vector2D; counter: Vector2D } {
+	const d = normalizeVector(dir);
+	const mag = dot(force, d);
+	const component = { x: d.x * mag, y: d.y * mag };
+	return {
+		remaining: { x: force.x - component.x, y: force.y - component.y },
+		counter: { x: -component.x, y: -component.y }
+	};
+}
+
 export function multiplyVector(v: Vector2D, s: number): Vector2D {
 	return { x: v.x * s, y: v.y * s };
 }
