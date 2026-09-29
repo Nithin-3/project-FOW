@@ -51,6 +51,17 @@ export function dot(a: Vector2D, b: Vector2D): number {
 	return a.x * b.x + a.y * b.y;
 }
 
+// Closest point to p on segment a-b, clamped to the segment ends.
+export function closestPointOnSegment(p: Vector2D, a: Vector2D, b: Vector2D): Vector2D {
+	const abx = b.x - a.x, aby = b.y - a.y;
+	const lenSq = abx * abx + aby * aby;
+	if (lenSq === 0) return { x: a.x, y: a.y };
+	let t = ((p.x - a.x) * abx + (p.y - a.y) * aby) / lenSq;
+	if (t < 0) t = 0;
+	else if (t > 1) t = 1;
+	return { x: a.x + abx * t, y: a.y + aby * t };
+}
+
 // Split `force` into the part along `dir` and the part perpendicular to it.
 // `remaining` keeps only the perpendicular (sliding) part, `counter` is the
 // equal-and-opposite of the component along `dir`.

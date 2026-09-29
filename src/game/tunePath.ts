@@ -1,7 +1,9 @@
 import type { Vector2D } from "./types";
 import { cross, samePoint } from "./utils";
 
-export function tuneingPath(source: Vector2D, target: Vector2D, portals: [Vector2D, Vector2D][],): Vector2D[] {
+
+
+export function tuneingPath(source: Vector2D, target: Vector2D, portals: [Vector2D, Vector2D][]): Vector2D[] {
 	if (portals.length === 0)
 		return [source, target];
 	const path: Vector2D[] = [source];
@@ -20,7 +22,7 @@ export function tuneingPath(source: Vector2D, target: Vector2D, portals: [Vector
 				right = pR
 				rightIdx = i;
 			} else {
-				path.push(left)
+				path.push(left);
 				apex = left
 				i = leftIdx + 1;
 				if (i >= portals.length) break;

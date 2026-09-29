@@ -175,7 +175,7 @@ resizeCanvas();
 window.addEventListener('resize', resizeCanvas);
 
 const setCameraWidth = (w: number) => {
-	cameraWidth = Math.min(1500, Math.max(950, w));
+	cameraWidth = Math.min(4500, Math.max(950, w));
 	camera.primary.updateSize(cameraWidth, getHeight(cameraWidth));
 };
 export { staticQuad, triQuad, staticTexture, edge, Player, setCameraWidth, getHeight };

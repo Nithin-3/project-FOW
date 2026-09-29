@@ -44,6 +44,14 @@ export class PhysicsBody extends GameObject {
 
 	private lossOverT = 0.3;
 
+	// Last surface that cancelled motion this step, so steering can slide
+	// along it instead of pressing into it. `null` when nothing blocked.
+	private blockedVec: Vector2D = { x: 0, y: 0 };
+	private hasBlocked = false;
+	public get blockedNormal(): Vector2D | null {
+		return this.hasBlocked ? this.blockedVec : null;
+	}
+
 	private area_() {
 		let sum = 0
 		for (let i = 0; i < this.points.length; i++) {
@@ -161,6 +169,9 @@ export class PhysicsBody extends GameObject {
 	// keeping the sliding part: this is the equal-and-opposite reaction force.
 	private applyNormalForce(normal: Vector2D) {
 		if (dot(this.linearVelocity, normal) >= 0) return; // already moving away
+		this.blockedVec.x = normal.x;
+		this.blockedVec.y = normal.y;
+		this.hasBlocked = true;
 		this.linearVelocity = cancelForceAlongDirection(this.linearVelocity, normal).remaining;
 	}
 
@@ -170,18 +181,26 @@ export class PhysicsBody extends GameObject {
 		let dy = this.linearVelocity.y * delta;
 		if (dx === 0 && dy === 0) return;
 
-		this.candidate.x = this._pos.x + dx;
-		this.candidate.y = this._pos.y + dy;
-		this.buildWorldHull(this.candidate);
-		this.collectNormals();
+		// Re-collect normals at each projected position so sliding against one
+		// wall can't leave the body embedded in another; stop once a pass makes
+		// no further correction.
+		for (let pass = 0; pass < 6; pass++) {
+			this.candidate.x = this._pos.x + dx;
+			this.candidate.y = this._pos.y + dy;
+			this.buildWorldHull(this.candidate);
+			this.collectNormals();
+			if (this.normals.length === 0) break;
 
-		for (const n of this.normals) {
-			const mag = dx * n.x + dy * n.y;
-			if (mag < 0) {
-				dx -= n.x * mag;
-				dy -= n.y * mag;
+			const beforeX = dx, beforeY = dy;
+			for (const n of this.normals) {
+				const mag = dx * n.x + dy * n.y;
+				if (mag < 0) {
+					dx -= n.x * mag;
+					dy -= n.y * mag;
+				}
+				this.applyNormalForce(n);
 			}
-			this.applyNormalForce(n);
+			if (Math.abs(dx - beforeX) < 1e-9 && Math.abs(dy - beforeY) < 1e-9) break;
 		}
 
 		this._pos = { x: this._pos.x + dx, y: this._pos.y + dy };
@@ -215,6 +234,7 @@ export class PhysicsBody extends GameObject {
 
 
 	private apply(delta: number) {
+		this.hasBlocked = false;
 		this._rot += this.angularVelocity * delta;
 		this.angularVelocity *= this.lossOverT;
 

@@ -1,6 +1,18 @@
 import type { Vector2D, Polygon } from './types';
 import { subtractVectors, crossProduct, vectorLength, multiplyVector, addVectors, cross, } from './utils';
 
+// Walk `distance` from A along the line towards B.
+export function moveAlongLine(A: Vector2D, B: Vector2D, distance: number): Vector2D {
+	const dx = B.x - A.x;
+	const dy = B.y - A.y;
+	const len = Math.sqrt(dx * dx + dy * dy);
+	if (len === 0) return { x: A.x, y: A.y }; // A and B are the same point
+	return {
+		x: A.x + (dx / len) * distance,
+		y: A.y + (dy / len) * distance
+	};
+}
+
 // Perpendicular distance from point P to infinite line AB
 // formula: |(B-A) × (P-A)| / |B-A|
 export function distancePointToLine(A: Vector2D, B: Vector2D, P: Vector2D): number {

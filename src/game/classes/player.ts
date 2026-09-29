@@ -12,6 +12,8 @@ import { PhysicsBody } from "./PhysicsBody";
 export class player extends PhysicsBody {
 
 	shadow: Light;
+	/** Circumradius of the body: the distance from its centre to its furthest point. */
+	readonly maxSize: number;
 	constructor(loc: Vector2D) {
 		const points: Polygon = [
 			{ x: 5, y: 0 },
@@ -23,6 +25,17 @@ export class player extends PhysicsBody {
 		super(0, points, "#00ffff" as Color,loc,0)
 		this.collision = true;
 		this.shadow = new Light(100);
+
+		const box = super.boundingBox();
+		const cx = (box.v1.x + box.v2.x) / 2;
+		const cy = (box.v1.y + box.v2.y) / 2;
+		let maxSize = 0;
+		for (const p of this.points) {
+			const dx = p.x - cx, dy = p.y - cy;
+			const d = Math.sqrt(dx * dx + dy * dy);
+			if (d > maxSize) maxSize = d;
+		}
+		this.maxSize = maxSize;
 	}
 	boundingBox(): { v1: Vector2D; v2: Vector2D; } {
 		const box = super.boundingBox()
@@ -65,6 +78,7 @@ export class player extends PhysicsBody {
 			}
 
 		if (!fromTri || !toTri) return [];
+		
 		return tuneingPath(this.position, to, await dijkstra(fromTri, toTri, this.position, to));
 	}
 
