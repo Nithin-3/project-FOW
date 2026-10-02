@@ -1,5 +1,6 @@
+import { camera } from "./setup";
 import type { Vector2D } from "./types";
-import { cross, samePoint } from "./utils";
+import { cross, samePoint, subtractVectors } from "./utils";
 
 
 
@@ -22,6 +23,13 @@ export function tuneingPath(source: Vector2D, target: Vector2D, portals: [Vector
 				right = pR
 				rightIdx = i;
 			} else {
+
+				let perp = path.at(-1)!;
+				const dxy = subtractVectors(perp, left);
+				// 90° perpendicular: (-dy, dx) for ccw rotation of vector (dx,dy)
+				perp = { x: left.x + dxy.y, y: left.y - dxy.x };
+				camera.primary.debugLine.push({ a: left, b: perp, t: performance.now(), color: "red" });
+				camera.primary.debugLine.push({ a: path.at(-1)!, b: perp, t: performance.now(), color: "blue" });
 				path.push(left);
 				apex = left
 				i = leftIdx + 1;
@@ -38,6 +46,12 @@ export function tuneingPath(source: Vector2D, target: Vector2D, portals: [Vector
 				left = pL
 				leftIdx = i;
 			} else {
+				let perp = path.at(-1)!;
+				const dxy = subtractVectors(perp, right);
+				// 90° perpendicular: (dy, -dx) for cw rotation (opposite direction)
+				perp = { x: right.x - dxy.y, y: right.y + dxy.x };
+				camera.primary.debugLine.push({ a: right, b: perp, t: performance.now(), color: "green" });
+				camera.primary.debugLine.push({ a: path.at(-1)!, b: perp, t: performance.now(), color: "blue" });
 				path.push(right)
 				apex = right
 				i = rightIdx + 1;
