@@ -79,7 +79,7 @@ export class player extends PhysicsBody {
 
 		if (!fromTri || !toTri) return [];
 		
-		return tuneingPath(this.position, to, await dijkstra(fromTri, toTri, this.position, to));
+		return tuneingPath(this.position, to, await dijkstra(fromTri, toTri, this.position, to),this.maxSize);
 	}
 
 }
