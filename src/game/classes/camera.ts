@@ -227,7 +227,7 @@ export class Camera extends Entity {
 			this.debugCtx.clearRect(0, 0, this.debugLayer.width, this.debugLayer.height);
 			const now = performance.now();
 			this.debugLine = this.debugLine.filter(c => now - c.t < 10000);
-			this.debugCtx.lineWidth = 3;
+			this.debugCtx.lineWidth = 2;
 			for (const c of this.debugLine) {
 				this.debugCtx.beginPath();
 				this.debugCtx.strokeStyle = c.color ?? "#ffffff";

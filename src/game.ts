@@ -48,15 +48,15 @@ hud.onclick = async (e) => {
 		if (walk.length < 1) return;
 
 
-		const debugLine = camera.primary.debugLine;
-		if (debugLine) {
-			let l1 = walk[0];
-			for (let w = 1; w < walk.length; w++) {
-				const l2 = walk[w];
-				debugLine.push({ a: l1, b: l2, t: performance.now() });
-				l1 = l2;
-			}
-		}
+		// const debugLine = camera.primary.debugLine;
+		// if (debugLine) {
+		// 	let l1 = walk[0];
+		// 	for (let w = 1; w < walk.length; w++) {
+		// 		const l2 = walk[w];
+		// 		debugLine.push({ a: l1, b: l2, t: performance.now() });
+		// 		l1 = l2;
+		// 	}
+		// }
 
 	}
 }
