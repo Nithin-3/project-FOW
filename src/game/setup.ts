@@ -1,5 +1,7 @@
 import type { Camera } from "./classes/camera";
 import type { GameObject } from "./classes/GameObject";
+import { Quad } from "./classes/QuadTree";
+import type { tri } from "./classes/triangle";
 
 const hud = document.getElementById('HUD') as HTMLCanvasElement;
 const screenWorld = document.querySelector<HTMLCanvasElement>("#world")!;
@@ -29,9 +31,12 @@ const browns = [
 
 const randomRange = (min: number, max: number) => Math.random() * (max - min) + min;
 
+const staticQuad = new Quad<GameObject>(worldSize, 20)
+const triQuad = new Quad<tri>(worldSize, 60)
+
 
 const camera: Record<string, Camera> = {}
 const movables: GameObject[] = []
 
-export { hud, screenWorld, screenWorldCtx, hudCtx, worldSize, info, browns, randomRange, camera, movables };
+export { hud, screenWorld, screenWorldCtx, hudCtx, worldSize, info, browns, randomRange, camera, movables, staticQuad, triQuad };
 export type { WorldInfo };

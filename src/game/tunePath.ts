@@ -81,7 +81,6 @@ export function tuneingPath(source: Vector2D, target: Vector2D, portals: [Vector
 		}
 
 	}
-	camera.primary.debugLine.push({ a: path.at(-1)!, b: target, t: performance.now() });
 	path.push(target);
 	return path;
 }
