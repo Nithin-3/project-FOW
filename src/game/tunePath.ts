@@ -1,6 +1,6 @@
 import { camera } from "./setup";
 import type { Vector2D } from "./types";
-import { addVectors, cross, multiplyVector, normalizeVector, samePoint, subtractVectors } from "./utils";
+import { addVectors, cross, dot, multiplyVector, normalizeVector, rotateVector, samePoint, subtractVectors } from "./utils";
 
 
 
@@ -38,8 +38,19 @@ export function tuneingPath(source: Vector2D, target: Vector2D, portals: [Vector
 
 				path.push(perp)
 				if (cross(pL, perp, edgeOffset) < 0) {
+					const u = subtractVectors(perp, pL);
+					const w = subtractVectors(edgeOffset, pL);
+					const ang = Math.atan2(cross(pL, perp, edgeOffset), dot(u, w));
+
+					let prev = perp;
+					for (let l = 1; l * (Math.PI / 2) < Math.abs(ang) - 1e-9; l++) {
+						const pt = addVectors(pL, rotateVector(u, Math.sign(ang) * l * (Math.PI / 2)));
+						path.push(pt);
+						camera.primary.debugLine.push({ a: pL, b: pt, t: performance.now(), color:"ffff00" });
+						prev = pt;
+					}
+
 					path.push(edgeOffset);
-					camera.primary.debugLine.push({ a: perp, b: edgeOffset, t: performance.now() });
 				}
 				apex = edgeOffset
 				i = leftIdx + 1;
@@ -68,8 +79,19 @@ export function tuneingPath(source: Vector2D, target: Vector2D, portals: [Vector
 
 				path.push(perp)
 				if (cross(pR, perp, edgeOffset) > 0) {
+					const u = subtractVectors(perp, pR);
+					const w = subtractVectors(edgeOffset, pR);
+					const ang = Math.atan2(cross(pR, perp, edgeOffset), dot(u, w));
+
+					let prev = perp;
+					for (let l = 1; l * (Math.PI / 2) < Math.abs(ang) - 1e-9; l++) {
+						const pt = addVectors(pR, rotateVector(u, Math.sign(ang) * l * (Math.PI / 2)));
+						path.push(pt);
+						camera.primary.debugLine.push({ a: pR, b: pt, t: performance.now(), color: "#ff00ff" });
+						prev = pt;
+					}
+
 					path.push(edgeOffset)
-					camera.primary.debugLine.push({ a: perp, b: edgeOffset, t: performance.now() });
 				}
 				apex = edgeOffset
 				i = rightIdx + 1;

@@ -1,7 +1,8 @@
 import { hud, hudCtx, screenWorld, screenWorldCtx, camera } from "./game/setup";
-import { edge, setCameraWidth, Player } from "./game/init";
+import { edge, setCameraWidth,} from "./game/init";
 import type { Vector2D } from "./game/types";
 import { addVectors, multiplyVector, normalizeVector, samePoint, subtractVectors, vectorLerp } from "./game/utils";
+import { Player } from "./game/noise";
 
 
 let moveCam: Vector2D = { x: 0, y: 0 };
@@ -116,7 +117,7 @@ function update(dt: number) {
 		if (samePoint(Player.position, walk[0], 5)) walk.shift();
 		else {
 			const dir = normalizeVector(subtractVectors(walk[0], Player.position));
-			Player.applyForce(multiplyVector(dir, 0.3), Player.com, dt);
+			Player.applyForce(multiplyVector(dir, 0.2), Player.com, dt);
 			const targetAngle = Math.atan2(-dir.x, dir.y) + Math.PI;
 			Player.rotateToward(targetAngle, 5, dt);
 		}
