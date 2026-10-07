@@ -1,7 +1,21 @@
 import { camera } from "./setup";
 import type { Vector2D } from "./types";
-import { addVectors, cross, dot, multiplyVector, normalizeVector, rotateVector, samePoint, subtractVectors } from "./utils";
+import { addVectors, cross, dot, multiplyVector, normalizeVector, samePoint, subtractVectors } from "./utils";
 
+function rotatePoint(point: Vector2D, center: Vector2D, angle: number) {
+	const v = {
+		x: point.x - center.x,
+		y: point.y - center.y
+	};
+
+	const c = Math.cos(angle);
+	const s = Math.sin(angle);
+
+	return {
+		x: center.x + v.x * c - v.y * s,
+		y: center.y + v.x * s + v.y * c
+	};
+}
 
 
 export function tuneingPath(source: Vector2D, target: Vector2D, portals: [Vector2D, Vector2D][], offset: number = 0): Vector2D[] {
@@ -20,37 +34,34 @@ export function tuneingPath(source: Vector2D, target: Vector2D, portals: [Vector
 				// NOTE: pR located in view area
 				rightIdx = i;
 			} else {
-
 				const [pL, pR] = portals[leftIdx];
-
-
 
 				let perp = multiplyVector(normalizeVector(subtractVectors(path.at(-1)!, pL)), offset)
 				perp = { x: pL.x + perp.y, y: pL.y - perp.x };
 
-
 				const dxy = multiplyVector(normalizeVector(subtractVectors(pR, pL)), offset);
 				const edgeOffset = addVectors(pL, dxy);
 
-				camera.primary.debugLine.push({ a: pL, b: edgeOffset, t: performance.now(), color: "red" });
 				camera.primary.debugLine.push({ a: pL, b: perp, t: performance.now(), color: "#ffff00" });
-
 
 				path.push(perp)
 				if (cross(pL, perp, edgeOffset) < 0) {
 					const u = subtractVectors(perp, pL);
 					const w = subtractVectors(edgeOffset, pL);
-					const ang = Math.atan2(cross(pL, perp, edgeOffset), dot(u, w));
 
-					let prev = perp;
-					for (let l = 1; l * (Math.PI / 2) < Math.abs(ang) - 1e-9; l++) {
-						const pt = addVectors(pL, rotateVector(u, Math.sign(ang) * l * (Math.PI / 2)));
+					let ccw = -Math.atan2(cross(pL, perp, edgeOffset), dot(u, w));
+					if (ccw < 0) ccw += Math.PI * 2;
+
+					const midL = Math.ceil(ccw / (Math.PI / 2)) - 1;
+
+					for (let l = 1; l <= midL; l++) {
+						const pt = rotatePoint(perp, pL, -l * (Math.PI / 2));
 						path.push(pt);
-						camera.primary.debugLine.push({ a: pL, b: pt, t: performance.now(), color:"ffff00" });
-						prev = pt;
+						camera.primary.debugLine.push({ a: pL, b: pt, t: performance.now(), color: "#ffff00" });
 					}
 
 					path.push(edgeOffset);
+					camera.primary.debugLine.push({ a: pL, b: edgeOffset, t: performance.now(), color: "red" });
 				}
 				apex = edgeOffset
 				i = leftIdx + 1;
@@ -67,31 +78,32 @@ export function tuneingPath(source: Vector2D, target: Vector2D, portals: [Vector
 			} else {
 				const [pL, pR] = portals[rightIdx];
 
-
 				let perp = multiplyVector(normalizeVector(subtractVectors(path.at(-1)!, pR)), offset)
 				perp = { x: pR.x - perp.y, y: pR.y + perp.x };
 
 				const dxy = multiplyVector(normalizeVector(subtractVectors(pL, pR)), offset);
 				const edgeOffset = addVectors(pR, dxy);
 
-				camera.primary.debugLine.push({ a: pR, b: edgeOffset, t: performance.now(), color: "green" });
 				camera.primary.debugLine.push({ a: pR, b: perp, t: performance.now(), color: "#ff00ff" });
 
 				path.push(perp)
 				if (cross(pR, perp, edgeOffset) > 0) {
 					const u = subtractVectors(perp, pR);
 					const w = subtractVectors(edgeOffset, pR);
-					const ang = Math.atan2(cross(pR, perp, edgeOffset), dot(u, w));
 
-					let prev = perp;
-					for (let l = 1; l * (Math.PI / 2) < Math.abs(ang) - 1e-9; l++) {
-						const pt = addVectors(pR, rotateVector(u, Math.sign(ang) * l * (Math.PI / 2)));
+					let cw = Math.atan2(cross(pR, perp, edgeOffset), dot(u, w));
+					if (cw < 0) cw += Math.PI * 2;
+
+					const midL = Math.ceil(cw / (Math.PI / 2)) - 1;
+
+					for (let l = 1; l <= midL; l++) {
+						const pt = rotatePoint(perp, pR, l * (Math.PI / 2));
 						path.push(pt);
 						camera.primary.debugLine.push({ a: pR, b: pt, t: performance.now(), color: "#ff00ff" });
-						prev = pt;
 					}
 
 					path.push(edgeOffset)
+					camera.primary.debugLine.push({ a: pR, b: edgeOffset, t: performance.now(), color: "green" });
 				}
 				apex = edgeOffset
 				i = rightIdx + 1;
