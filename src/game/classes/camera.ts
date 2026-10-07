@@ -67,6 +67,12 @@ export class Camera extends Entity {
 		this._ensureScale(window.innerWidth, window.innerHeight);
 		window.addEventListener("resize", () => this._ensureScale(window.innerWidth, window.innerHeight))
 
+		const push = this.debugLine.push
+		this.debugLine.push = function(...line: { a: Vector2D; b: Vector2D; t: number; color?: string }[]) {
+			if (import.meta.env.DEV)
+				return push.apply(this, line);
+			else return 0;
+		}
 		if (import.meta.env.DEV) {
 			this.debugLayer = new OffscreenCanvas(this.cam.width, this.cam.height);
 			this.debugCtx = this.debugLayer.getContext('2d')!;
