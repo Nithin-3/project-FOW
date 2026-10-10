@@ -152,7 +152,7 @@ function update(dt: number) {
 		if (samePoint(Player.position, walk[0], 5)) walk.shift();
 		else {
 			const dir = normalizeVector(subtractVectors(walk[0], Player.position));
-			Player.applyForce(multiplyVector(dir, 0.2), Player.com, dt);
+			Player.applyForce(dir, Player.com, dt);
 			const targetAngle = Math.atan2(-dir.x, dir.y) + Math.PI;
 			Player.rotateToward(targetAngle, 5, dt);
 		}

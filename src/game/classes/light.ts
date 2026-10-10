@@ -39,9 +39,11 @@ export class Light extends Entity {
 		this.ctx.clearRect(0, 0, this.texture.width, this.texture.height);
 
 		this.ctx.beginPath();
-		this.ctx.arc(center.x, center.y, this.radius - 1, 0, Math.PI * 2);
+		this.ctx.filter = "blur(10px)"
+		this.ctx.arc(center.x, center.y, this.radius - 21, 0, Math.PI * 2);
 		this.ctx.fillStyle = "#fff";
 		this.ctx.fill();
+		this.ctx.filter = "none"
 
 		this.ctx.globalCompositeOperation = "destination-out";
 		staticQuad.getBB(box).forEach(o => {

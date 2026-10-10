@@ -8,6 +8,8 @@ import { tuneingPath } from "../tunePath";
 import { PhysicsBody } from "./PhysicsBody";
 
 
+const RAD = 150
+
 
 export class player extends PhysicsBody {
 
@@ -16,14 +18,14 @@ export class player extends PhysicsBody {
 	readonly maxSize: number;
 	constructor(loc: Vector2D) {
 		const points: Polygon = [
-			{ x: 0, y: -6 },
-			{ x: 4.5, y: 6 },
-			{ x: 0, y: 3 },
-			{ x: -4.5, y: 6 },
+			{ x: 0, y: -12 },
+			{ x: 9, y: 12 },
+			{ x: 0, y: 6 },
+			{ x: -9, y: 12 },
 		];
 		super(0, points, "#00ffff" as Color, loc, 0)
 		this.collision = true;
-		this.shadow = new Light(100);
+		this.shadow = new Light(RAD);
 
 		const box = super.boundingBox();
 		const cx = (box.v1.x + box.v2.x) / 2;
@@ -57,11 +59,12 @@ export class player extends PhysicsBody {
 		let zInd = 0;
 		staticQuad.getLeafQuad(this.position).forEach(o => {
 			if (pointInPolygon(this.position, o.points)) {
-				zInd = o.zIndex
+				zInd = o.zIndex < 0 ? o.zIndex : o.zIndex + 1
 				return;
 			}
 		})
 		this.zIndex = zInd;
+		// camera.primary.debugLine.push({ a: this.position, b: addVectors(this.position, { x: RAD-21, y: 0 }), t: performance.now() })
 	}
 
 

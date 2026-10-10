@@ -3,7 +3,7 @@ import { Entity } from "./Entity";
 import { subtractVectors } from "../utils";
 import { staticTexture } from "../init";
 import type { GameObject } from "./GameObject";
-import { movables } from "../setup";
+import { movables, worldSize } from "../setup";
 import { player } from "./player";
 
 type RECT = { width: number, height: number };
@@ -38,7 +38,10 @@ export class Camera extends Entity {
 
 	get position(): Vector2D { return this.loc }
 	set position(v: Vector2D) {
-		this.loc = v;
+		this.loc = {
+			x: Math.min(Math.max(v.x, worldSize.v1.x), worldSize.v2.x - this.cam.width),
+			y: Math.min(Math.max(v.y, worldSize.v1.y), worldSize.v2.y - this.cam.height),
+		};
 		this._updateBounds();
 		for (const m of movables)
 			this.updateMovement(m)
@@ -234,7 +237,9 @@ export class Camera extends Entity {
 		this.fogCtx.fillStyle = "rgba(0,0,0,0.8)"
 		this.fogCtx.fillRect(0, 0, this.fogLayer.width, this.fogLayer.height);
 		this.fogCtx.globalCompositeOperation = "destination-out";
-		this.fogCtx.drawImage(this.fogMask, 0, 0)
+		// this.fogCtx.filter = "blur(10px)";
+		this.fogCtx.drawImage(this.fogMask, 0, 0);
+		// this.fogCtx.filter = "none";
 
 		this.ctx.drawImage(this.fogLayer, 0, 0, this.cam.width, this.cam.height, 0, 0, this.cam.width, this.cam.height);
 

@@ -10,11 +10,6 @@ const staticTexture = new OffscreenCanvas(info.width, info.height) as OffscreenC
 staticTexture.info = info;
 const ctx = staticTexture.getContext("2d")!;
 
-// browns[4] = await loadImage("https://external-content.duckduckgo.com/iu/?u=https%3A%2F%2Fwallpaperaccess.com%2Ffull%2F3362773.jpg&f=1&nofb=1&ipt=0acb4a50ef620c6dc9e3b28e649175eff8f602ba68ad5ed5cb0411184ffb2e8b") as any;
-// browns[5] = await loadImage("https://external-content.duckduckgo.com/iu/?u=https%3A%2F%2Fimg.freepik.com%2Fpremium-photo%2Fnatural-rock-stone-surface-seamless-texture_900706-4380.jpg&f=1&nofb=1&ipt=e1cb40814f3ab96ed460d45ceff753fb81c3613b7e3aeb6e1c087c8c8e0b81b7") as any;
-// browns[3] = await loadImage("https://external-content.duckduckgo.com/iu/?u=https%3A%2F%2Fcdn.pixabay.com%2Fphoto%2F2021%2F09%2F13%2F10%2F44%2Fseashore-6620965_1280.jpg&f=1&nofb=1&ipt=b292380ccd75e5565be74d5dda5938073243751fab353885739810e05f44472c") as any;
-// browns[2] = await loadImage("https://external-content.duckduckgo.com/iu/?u=https%3A%2F%2Fwww.texturex.com%2Fwp-content%2Fuploads%2F2018%2F03%2FStone-Texture-wall-large-rock-grey-image.jpg&f=1&nofb=1&ipt=6ae0ecd0a30791d24e9ac10843ec1cb54c5f240f0d5ea364e3dd659dfef38997") as any;
-
 
 const staticObj = [...staticQuad.getAll()].sort((a, b) => a.zIndex - b.zIndex);
 const worldRect: Polygon = [worldSize.v1, { x: worldSize.v1.x, y: worldSize.v2.y }, worldSize.v2, { x: worldSize.v2.x, y: worldSize.v1.y },];
@@ -33,7 +28,7 @@ function loadImage(src: string): Promise<HTMLImageElement> {
 const grass = await loadImage("grass_128x128.png");
 const pattern = ctx.createPattern(grass, "repeat");
 if (pattern) {
-	ctx.fillStyle = pattern;
+	ctx.fillStyle = "red" ?? pattern;
 	ctx.fillRect(0, 0, staticTexture.width, staticTexture.height);
 }
 ctx.translate(info.offsetX, info.offsetY);
