@@ -1,8 +1,8 @@
 import { hud, hudCtx, screenWorld, screenWorldCtx, camera } from "./game/setup";
-import { edge, setCameraWidth,} from "./game/init";
+import { edge } from "./game/init";
 import type { Vector2D } from "./game/types";
 import { addVectors, multiplyVector, normalizeVector, samePoint, subtractVectors, vectorLerp } from "./game/utils";
-import { Player } from "./game/noise";
+import { Player, zoomCamera, updateCameraZoom } from "./game/noise";
 
 
 let moveCam: Vector2D = { x: 0, y: 0 };
@@ -62,13 +62,24 @@ hud.onclick = async (e) => {
 	}
 }
 
+
+const prevCurs: Vector2D & { w: number, h: number } = { x: 0, y: 0, w: 0, h: 0 };
+
+const rad = 6;
+const lineWidth = 3
+
 hud.onmousemove = (e) => {
 	const x = e.offsetX;
 	const y = e.offsetY;
+	hudCtx.clearRect(prevCurs.x, prevCurs.y, prevCurs.w, prevCurs.h);
 	hudCtx.beginPath();
-	hudCtx.arc(x, y, 3, 0, Math.PI * 2);
+	hudCtx.arc(x, y, rad, 0, Math.PI * 2);
+	prevCurs.x = x - rad - lineWidth / 2 - 1;  // -1 for antialias
+	prevCurs.y = y - rad - lineWidth / 2 - 1;
+	prevCurs.w = (rad + lineWidth / 2 + 1) * 2;
+	prevCurs.h = prevCurs.w;
 	hudCtx.strokeStyle = "red";
-	hudCtx.lineWidth = 3;
+	hudCtx.lineWidth = lineWidth;
 	hudCtx.stroke();
 	if (x <= edge || x >= hud.width - edge || y <= edge || y >= hud.height - edge) {
 		moveCam = normalizeVector(subtractVectors(
@@ -76,9 +87,9 @@ hud.onmousemove = (e) => {
 			{ x: hud.width / 2, y: hud.height / 2 }
 		));
 		hudCtx.beginPath();
-		hudCtx.arc(x, y, 6, 0, Math.PI * 2);
-		hudCtx.fillStyle = "green";
-		hudCtx.fill();
+		hudCtx.arc(x, y, rad, 0, Math.PI * 2);
+		hudCtx.strokeStyle = "green";
+		hudCtx.stroke();
 	} else {
 		moveCam = { x: 0, y: 0 };
 	}
@@ -87,14 +98,36 @@ hud.onmousemove = (e) => {
 hud.onmouseleave = () => moveCam = { x: 0, y: 0 };
 
 hud.onwheel = (e) => {
-	const factor = e.deltaY > 0 ? 1.1 : 0.9;
-	setCameraWidth(camera.primary.texture.width * factor);
+	zoomCamera(e.deltaY > 0 ? 1.1 : 0.9, { x: e.offsetX, y: e.offsetY });
 };
 
-function drawDebug(ctx: CanvasRenderingContext2D, items: Record<string, string | number>, x = 10, y = 10, lineH = 15) {
+let prevDebugBox: { x: number; y: number; w: number; h: number } | undefined
+
+function drawDebug(ctx: CanvasRenderingContext2D, items: Record<string, string | number>, x = 10, y = 10, lineH = 15, pad = 4) {
 	ctx.font = "10px sans-serif"
+	if (prevDebugBox) {
+		ctx.clearRect(prevDebugBox.x, prevDebugBox.y, prevDebugBox.w, prevDebugBox.h)
+		prevDebugBox = undefined
+	}
+	const entries = Object.entries(items)
+	if (entries.length === 0) return
+
+	const m = ctx.measureText("Mg")
+	const ascent = m.actualBoundingBoxAscent || 8
+	const descent = m.actualBoundingBoxDescent || 2
+
+	let maxW = 0
+	for (const [label, value] of entries)
+		maxW = Math.max(maxW, ctx.measureText(`${label}: ${value}`).width)
+
+	const boxX = x - pad
+	const boxY = y - ascent - pad
+	const boxW = maxW + pad * 2
+	const boxH = (entries.length - 1) * lineH + ascent + descent + pad * 2
+	prevDebugBox = { x: boxX, y: boxY, w: boxW, h: boxH }
+
 	ctx.fillStyle = "rgb(25,255,255)"
-	for (const [label, value] of Object.entries(items)) {
+	for (const [label, value] of entries) {
 		ctx.fillText(`${label}: ${value}`, x, y);
 		y += lineH;
 	}
@@ -109,6 +142,8 @@ let frameCount = 0;
 let frameTime = 0;
 
 function update(dt: number) {
+	updateCameraZoom();
+
 	if (moveCam.x !== 0 || moveCam.y !== 0) {
 		camera.primary.position = vectorLerp(camera.primary.position, addVectors(camera.primary.position, multiplyVector(moveCam, dt * 3)), 0.05);
 	}
@@ -150,7 +185,6 @@ function gameloop() {
 	frameCount++;
 
 	if (acc >= 1000) {
-		hudCtx.clearRect(0, 0, screenWorld.width, screenWorld.height)
 		drawDebug(hudCtx, {
 			frameTime: `${(acc / frameCount).toFixed(3)} ms`,
 			frameGenerated: frameCount,

@@ -61,9 +61,11 @@ export function tuneingPath(source: Vector2D, target: Vector2D, portals: [Vector
 					}
 
 					path.push(edgeOffset);
+					apex = edgeOffset
 					camera.primary.debugLine.push({ a: pL, b: edgeOffset, t: performance.now(), color: "red" });
+				} else {
+					apex = perp
 				}
-				apex = edgeOffset
 				i = leftIdx + 1;
 				if (i >= portals.length) break;
 				leftIdx = i;
@@ -103,9 +105,11 @@ export function tuneingPath(source: Vector2D, target: Vector2D, portals: [Vector
 					}
 
 					path.push(edgeOffset)
+					apex = edgeOffset
 					camera.primary.debugLine.push({ a: pR, b: edgeOffset, t: performance.now(), color: "green" });
+				} else {
+					apex = perp
 				}
-				apex = edgeOffset
 				i = rightIdx + 1;
 				if (i >= portals.length) break;
 				leftIdx = i;

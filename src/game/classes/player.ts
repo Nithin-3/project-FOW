@@ -1,7 +1,7 @@
 import { Light } from "./light";
 import type { Color, Polygon, Vector2D } from "../types";
 import { dijkstra } from "../A*";
-import { triQuad } from "../init";
+import { staticQuad, triQuad } from "../init";
 import { pointInPolygon, } from "../tools";
 import type { tri } from "./triangle";
 import { tuneingPath } from "../tunePath";
@@ -16,13 +16,12 @@ export class player extends PhysicsBody {
 	readonly maxSize: number;
 	constructor(loc: Vector2D) {
 		const points: Polygon = [
-			{ x: 5, y: 0 },
-			{ x: 0, y: 10 },
-			{ x: 5, y: 5 },
-			{ x: 10, y: 10 },
-			{ x: 5, y: 0 },
+			{ x: 0, y: -6 },
+			{ x: 4.5, y: 6 },
+			{ x: 0, y: 3 },
+			{ x: -4.5, y: 6 },
 		];
-		super(0, points, "#00ffff" as Color,loc,0)
+		super(0, points, "#00ffff" as Color, loc, 0)
 		this.collision = true;
 		this.shadow = new Light(100);
 
@@ -54,6 +53,17 @@ export class player extends PhysicsBody {
 		this.shadow.render(this.position, this.zIndex);
 	}
 
+	protected override movement(): void {
+		let zInd = 0;
+		staticQuad.getLeafQuad(this.position).forEach(o => {
+			if (pointInPolygon(this.position, o.points)) {
+				zInd = o.zIndex
+				return;
+			}
+		})
+		this.zIndex = zInd;
+	}
+
 
 	async findPath(to: Vector2D) {
 		let fromTri: tri | undefined;
@@ -78,8 +88,8 @@ export class player extends PhysicsBody {
 			}
 
 		if (!fromTri || !toTri) return [];
-		
-		return tuneingPath(this.position, to, await dijkstra(fromTri, toTri, this.position, to),this.maxSize*2);
+
+		return tuneingPath(this.position, to, await dijkstra(fromTri, toTri, this.position, to), this.maxSize * 2);
 	}
 
 }

@@ -47,6 +47,9 @@ export class Camera extends Entity {
 
 	get texture(): OffscreenCanvas { this.draw = false; return this._texture; }
 
+	get width(): number { return this.cam.width }
+	get height(): number { return this.cam.height }
+
 	get stateChanged(): boolean { return this.draw }
 
 
@@ -94,10 +97,10 @@ export class Camera extends Entity {
 		}
 	}
 
-	updateSize(width: number, height: number) {
+	updateSize(width: number, height: number, anchor?: Vector2D) {
+		const worldAnchor = anchor ? this.screen2world(anchor) : undefined;
 		this.cam.width = width;
 		this.cam.height = height;
-		this._updateBounds();
 		this._scaleX = this.SW / width;
 		this._scaleY = this.SH / height;
 		this.fogLayer.width = width;
@@ -112,6 +115,12 @@ export class Camera extends Entity {
 			this.debugLayer.height = height;
 			this.debugLayer.width = width;
 		}
+
+		if (anchor && worldAnchor)
+			this.loc = { x: worldAnchor.x - anchor.x / this._scaleX, y: worldAnchor.y - anchor.y / this._scaleY }
+
+		this._updateBounds();
+
 		for (const m of movables)
 			this.updateMovement(m)
 		this.draw = true

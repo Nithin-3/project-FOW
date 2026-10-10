@@ -1,5 +1,6 @@
+import { Camera } from "./classes/camera";
 import { player } from "./classes/player";
-import { browns, movables, staticQuad, worldSize } from "./setup";
+import { browns, camera, movables, staticQuad, worldSize } from "./setup";
 import { drawRandomPolygon } from "./shape/draw";
 import type { Vector2D } from "./types";
 import { distSq } from "./utils";
@@ -94,8 +95,41 @@ const spawn = (() => {
 	return { x: x0, y: y0 };
 })();
 const Player = new player(spawn)
-movables.push(Player)
-export { Player }
+movables.push(Player) // update movables before camera
+
+let cameraWidth = 950
+let targetWidth = 950
+let zoomAnchor: Vector2D | undefined
+const getHeight = (width: number): number => (width / (window.innerWidth / window.innerHeight));
+
+const clampWidth = (w: number) => Math.min(1500, Math.max(950, w));
+
+const zoomCamera = (factor: number, anchor: Vector2D) => {
+	targetWidth = clampWidth(targetWidth * factor);
+	zoomAnchor = anchor;
+};
+
+const updateCameraZoom = () => {
+	if (!zoomAnchor) return;
+	const diff = targetWidth - cameraWidth;
+	if (Math.abs(diff) < 0.5) {
+		if (cameraWidth !== targetWidth) {
+			cameraWidth = targetWidth;
+			camera.primary.updateSize(cameraWidth, getHeight(cameraWidth), zoomAnchor);
+		}
+		zoomAnchor = undefined;
+		return;
+	}
+	cameraWidth += diff * 0.18;
+	camera.primary.updateSize(cameraWidth, getHeight(cameraWidth), zoomAnchor);
+};
+
+camera['primary'] = new Camera({ x: spawn.x - cameraWidth / 2, y: spawn.y - getHeight(cameraWidth) / 2 }, cameraWidth, getHeight(cameraWidth))
+
+
+export { Player, zoomCamera, updateCameraZoom }
+
+// debug
 export function draw(ctx: OffscreenCanvasRenderingContext2D) {
 	ctx.save();
 	ctx.lineWidth = 2;

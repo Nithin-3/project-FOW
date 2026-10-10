@@ -1,12 +1,10 @@
-import { Camera } from "./classes/camera";
 import { triangulate } from "./navigationMesh";
 import { vectorLerp } from "./utils";
-import { hud, screenWorld, worldSize, info, camera, staticQuad, triQuad} from "./setup";
+import { hud, screenWorld, worldSize, info, staticQuad, triQuad} from "./setup";
 import {draw } from "./noise";
 import type { Polygon, Vector2D } from "./types";
 import type { tri } from "./classes/triangle";
 
-let cameraWidth = 950
 
 const staticTexture = new OffscreenCanvas(info.width, info.height) as OffscreenCanvas & { info: typeof info };
 staticTexture.info = info;
@@ -85,9 +83,6 @@ ctx.rect(worldSize.v1.x, worldSize.v1.y, info.width, info.height)
 ctx.strokeStyle = "#663399"
 ctx.stroke()
 
-const getHeight = (width: number): number => (width / (window.innerWidth / window.innerHeight));
-
-camera['primary'] = new Camera({ x: -2000, y: -2000 }, cameraWidth, getHeight(cameraWidth))
 
 
 
@@ -158,8 +153,4 @@ function resizeCanvas() {
 resizeCanvas();
 window.addEventListener('resize', resizeCanvas);
 
-const setCameraWidth = (w: number) => {
-	cameraWidth = Math.min(4500, Math.max(950, w));
-	camera.primary.updateSize(cameraWidth, getHeight(cameraWidth));
-};
-export { staticQuad, triQuad, staticTexture, edge, setCameraWidth, getHeight };
+export { staticQuad, triQuad, staticTexture, edge};

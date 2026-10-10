@@ -40,7 +40,11 @@ export function segmentsIntersect(a: Vector2D, b: Vector2D, c: Vector2D, d: Vect
 	const rx = b.x - a.x, ry = b.y - a.y;
 	const sx = d.x - c.x, sy = d.y - c.y;
 	const denom = rx * sy - ry * sx;
-	if (denom === 0) return false;
+	if (denom === 0) {
+		// Parallel: a hit only if collinear and the spans overlap (incl. touching).
+		return pointOnSegment(a, c, d) || pointOnSegment(b, c, d) ||
+			pointOnSegment(c, a, b) || pointOnSegment(d, a, b);
+	}
 	const cax = c.x - a.x, cay = c.y - a.y;
 	const t = (cax * sy - cay * sx) / denom;
 	if (t < 0 || t > 1) return false;
@@ -93,12 +97,12 @@ export function segmentOverlapsBox(a: Vector2D, b: Vector2D, box: { v1: Vector2D
 }
 
 // Boolean collision: does segment AB touch convex polygon (early-exit, no allocation)?
-export function segmentHitsConvexHull(a: Vector2D, b: Vector2D, polygon: Polygon): boolean {
-	if (pointInPolygon(a, polygon) || pointInPolygon(b, polygon)) return true;
+export function segmentHitsConvexHull(a: Vector2D, b: Vector2D, polygon: Polygon): Vector2D | null {
 	for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
-		if (segmentsIntersect(a, b, polygon[j], polygon[i])) return true;
+		const hit = segmentIntersect(a, b, polygon[j], polygon[i]);
+		if (hit) return hit;
 	}
-	return false;
+	return null;
 }
 
 // Unit normal of segment a->b, oriented to point toward `center`.
