@@ -36,10 +36,10 @@ document.addEventListener("keyup", (event) => {
 let walk: Vector2D[] = []
 
 hud.onclick = async (e) => {
-	const x = e.offsetX;
-	const y = e.offsetY;
-	const loc = camera.primary.screen2world({ x, y })
 	if (e.ctrlKey) {
+		const x = e.offsetX;
+		const y = e.offsetY;
+		const loc = camera.primary.screen2world({ x, y })
 		try {
 			walk = await Player!.findPath(loc)
 		} catch (e) {

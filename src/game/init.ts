@@ -1,7 +1,7 @@
 import { triangulate } from "./navigationMesh";
 import { vectorLerp } from "./utils";
-import { hud, screenWorld, worldSize, info, staticQuad, triQuad} from "./setup";
-import {draw } from "./noise";
+import { hud, screenWorld, worldSize, info, staticQuad, triQuad } from "./setup";
+import { draw } from "./noise";
 import type { Polygon, Vector2D } from "./types";
 import type { tri } from "./classes/triangle";
 
@@ -25,12 +25,28 @@ function loadImage(src: string): Promise<HTMLImageElement> {
 	});
 }
 
-const grass = await loadImage("grass_128x128.png");
-const pattern = ctx.createPattern(grass, "repeat");
-if (pattern) {
-	ctx.fillStyle = "red" ?? pattern;
-	ctx.fillRect(0, 0, staticTexture.width, staticTexture.height);
+function repeatTexture(ctx: OffscreenCanvasRenderingContext2D, img: HTMLImageElement, x: number, y: number, width: number, height: number,) {
+	const tileW = img.width;
+	const tileH = img.height;
+	let step = 0;
+	for (let py = y; py < y + height; py += tileH)
+		for (let px = x; px < x + width; px += tileW) {
+			ctx.save();
+			ctx.strokeStyle = "red"
+			ctx.translate(px + tileW / 2, py + tileH / 2);
+			// ctx.rotate((step * Math.PI) / 2);
+			ctx.drawImage(img, -tileW / 2, -tileH / 2, tileW, tileH);
+			ctx.strokeRect(-tileW / 2, -tileH / 2, tileW, tileH);
+			// ctx.moveTo(0, 0);
+			// ctx.lineTo(0, -tileH / 2)
+			ctx.stroke();
+			ctx.restore();
+			step++;
+		}
 }
+
+const grass = await loadImage("rockc.png");
+repeatTexture(ctx, grass, 0, 0, staticTexture.width, staticTexture.height);
 ctx.translate(info.offsetX, info.offsetY);
 
 
@@ -148,4 +164,4 @@ function resizeCanvas() {
 resizeCanvas();
 window.addEventListener('resize', resizeCanvas);
 
-export { staticQuad, triQuad, staticTexture, edge};
+export { staticQuad, triQuad, staticTexture, edge };
