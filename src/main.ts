@@ -13,7 +13,7 @@ if (app) {
   const gameButton = document.getElementById('game-button');
   if (gameButton) {
     gameButton.addEventListener('click', () => {
-      window.location.href = '/game';
+      window.location.href = '/game.html';
     });
   }
 }
