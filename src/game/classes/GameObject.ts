@@ -85,6 +85,7 @@ export class GameObject extends Entity {
 			ctx.lineTo(points[i].x - this._boundingBox.v1.x, points[i].y - this._boundingBox.v1.y);
 		ctx.closePath();
 
+
 		if (fill instanceof HTMLImageElement || fill instanceof ImageBitmap) {
 			this.fill = fill;
 			ctx.save();
@@ -97,6 +98,17 @@ export class GameObject extends Entity {
 			ctx.fill();
 		}
 
+		if (doors) {
+			ctx.beginPath();
+			for (let i = 0; i < doors.length; i += 2) {
+				ctx.moveTo(doors[i].x - this._boundingBox.v1.x, doors[i].y - this._boundingBox.v1.y);
+				ctx.lineTo(doors[i + 1].x - this._boundingBox.v1.x, doors[i + 1].y - this._boundingBox.v1.y);
+			}
+
+			ctx.lineWidth = 3
+			ctx.strokeStyle = "#ff0000"
+			ctx.stroke()
+		}
 
 	}
 

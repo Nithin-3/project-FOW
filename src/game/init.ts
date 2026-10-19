@@ -54,17 +54,6 @@ for (const o of staticObj) {
 	const { v1, v2 } = o.boundingBox()
 	o.render(ctx, v1, v2)
 	if (o.door?.length) {
-		for (let i = 0; i < o.door.length; i += 2) {
-			const a = o.door[i];
-			const b = o.door[i + 1];
-			ctx.strokeStyle = "#FFD700";
-			ctx.lineWidth = 4;
-			ctx.beginPath();
-			ctx.moveTo(a.x, a.y);
-			ctx.lineTo(b.x, b.y);
-			ctx.stroke();
-
-		}
 		const dupDoor = [...o.door]
 		const inside = [...staticQuad.getBB(o.boundingBox())].filter(inner => o.zIndex < inner.zIndex);
 		const triangles = triangulate(o.points, allDoors, triQuad, inside.map(inner => inner.points))

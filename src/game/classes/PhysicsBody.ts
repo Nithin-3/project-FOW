@@ -1,6 +1,6 @@
 import { triQuad } from "../init";
 import { camera } from "../setup";
-import { segmentHitsConvexHull, segmentOverlapsBox } from "../tools";
+import { edgeNormal, segmentHitsConvexHull, segmentOverlapsBox } from "../tools";
 import type { Color, Polygon, Vector2D } from "../types";
 import { addVectors, multiplyVector, subtractVectors } from "../utils";
 import { GameObject } from "./GameObject";
@@ -20,6 +20,14 @@ export class PhysicsBody extends GameObject {
 
 	public get com(): Vector2D {
 		return this.COM;
+	}
+
+	public get worldCom(): Vector2D {
+		const s = Math.sin(this._rot), c = Math.cos(this._rot);
+		return {
+			x: this._pos.x + this.COM.x * c - this.COM.y * s,
+			y: this._pos.y + this.COM.x * s + this.COM.y * c,
+		};
 	}
 
 
@@ -80,6 +88,9 @@ export class PhysicsBody extends GameObject {
 	}
 
 
+	protected movement(): void {
+		return;
+	}
 
 	constructor(zIndex: number, points: Polygon, fill: Color | HTMLImageElement | ImageBitmap, position: Vector2D, rotation: number, density = 1) {
 		super(zIndex, points, fill);
@@ -125,52 +136,25 @@ export class PhysicsBody extends GameObject {
 		this.hullBox.v2.y = maxY;
 	}
 
-	// Fill this.normals with the outward normal of every static edge the
-	// current world hull overlaps. Must be preceded by buildWorldHull.
-	// private collectNormals() {
-	// 	this.normals.length = 0;
-	// 	const hullBox = this.hullBox;
-	//
-	// 	triQuad.forEachBB(hullBox, (convex) => {
-	// 		for (const edge of convex.collitionEdge) {
-	//
-	// 			// convex.center sits in the walkable triangle, so the normal
-	// 			// oriented toward it always points out of the obstacle.
-	// 			this.normals.push(edgeNormal(edge[0], edge[1], convex.center));
-	//
-	// 		}
-	// 	});
-	// }
-
-	// Cancel the part of the body's motion that pushes into `normal` while
-	// keeping the sliding part: this is the equal-and-opposite reaction force.
-	// private applyNormalForce(normal: Vector2D) {
-	// 	if (dot(this.linearVelocity, normal) >= 0) return; // already moving away
-	// 	this.linearVelocity = cancelForceAlongDirection(this.linearVelocity, normal).remaining;
-	// }
-
-	// Build the world hull at `pos`, then push every static edge it overlaps
-	// to the debug layer.
-	private detectAt(pos: Vector2D) {
+	private detectAt(pos: Vector2D, dt: number) {
 		this.buildWorldHull(pos);
 
 		console.time("quad");
-
 		triQuad.forEachBB(this.hullBox, (convex) => {
 			for (const edge of convex.collitionEdge) {
 				if (!segmentOverlapsBox(edge[0], edge[1], this.hullBox)) continue;
 				const hit = segmentHitsConvexHull(edge[0], edge[1], this.hull);
 				if (!hit) continue;
 				camera.primary.debugLine.push({ a: edge[0], b: edge[1], t: performance.now() });
+				const n = edgeNormal(edge[0], edge[1], convex.center);
+				const fn = { x: -n.x * this.linearVelocity.x, y: -n.y * this.linearVelocity.y };
+				this.applyForce(fn, hit, dt, this.#tok)
 			}
 		});
-
 		console.timeEnd("quad");
+
 	}
 
-	protected movement():void{
-		return;
-	}
 
 	// Move by the current velocity, sliding along anything it runs into.
 	private move(delta: number) {
@@ -178,7 +162,7 @@ export class PhysicsBody extends GameObject {
 		let dy = this.linearVelocity.y * delta;
 		if (dx === 0 && dy === 0) return;
 
-		this.detectAt({ x: this._pos.x + dx, y: this._pos.y + dy });
+		this.detectAt({ x: this._pos.x + dx, y: this._pos.y + dy }, delta);
 
 
 		this._pos = { x: this._pos.x + dx, y: this._pos.y + dy };
@@ -200,14 +184,14 @@ export class PhysicsBody extends GameObject {
 		this._rot = this._rot + diff * (1 - Math.exp(-speed * delta / 300));
 		// move() already tests the translated hull before this rotation lands,
 		// so re-test the rotated hull here or the new pose goes unchecked.
-		if (diff !== 0) this.detectAt(this._pos);
+		if (diff !== 0) this.detectAt(this._pos, delta);
 		this.commit();
 	}
 
 	applyForce(force: Vector2D, intractPoint: Vector2D, delta: number, tok?: Symbol) {
 		const a = { x: force.x / this.mass, y: force.y / this.mass }
 		this.linearVelocity = addVectors(this.linearVelocity, multiplyVector(a, delta));
-		const dist = subtractVectors(intractPoint, this.COM);
+		const dist = subtractVectors(intractPoint, this.worldCom);
 		const t = dist.x * force.y - dist.y * force.x;
 		this.angularVelocity += (t / this.inertia) * delta;
 
